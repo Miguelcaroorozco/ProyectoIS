@@ -19,7 +19,7 @@
       </div>
 
       <nav class="nav" aria-label="Navegación">
-        <a href="index.html">Dashboard</a>
+        <a href="index.html">Inicio</a>
         <a href="actividades.html">Actividades</a>
         <a href="nueva-actividad.html">Nueva Actividad</a>
         <a href="busqueda-avanzada.html">Búsqueda Avanzada</a>
@@ -39,6 +39,12 @@
           </svg>
         </button>
         <div style="display:flex; align-items:center; gap:14px;">
+          <button class="icon-btn" type="button" data-theme-toggle aria-label="Cambiar tema" title="Cambiar tema">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
           <div class="topdot" title="Notificaciones"></div>
           <div class="avatar" title="Perfil"></div>
         </div>
@@ -65,6 +71,25 @@
             <div class="field mt-3">
               <label>Facultad</label>
               <input class="input" type="text" placeholder="Facultad de Ingeniería" aria-label="Facultad" />
+            </div>
+
+            <div class="field mt-3">
+              <label>Foto de Perfil</label>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <img
+                  data-profile-photo-preview
+                  alt="Previsualización de foto de perfil"
+                  style="width:54px; height:54px; border-radius:999px; border:1px solid var(--border); background:var(--surface-2); object-fit:cover; display:none;"
+                />
+                <input
+                  class="input"
+                  type="file"
+                  accept="image/*"
+                  data-profile-photo-input
+                  aria-label="Seleccionar foto de perfil"
+                />
+              </div>
+              <div style="color: var(--muted); font-size: 13px; margin-top: 8px;">Formatos recomendados: JPG o PNG.</div>
             </div>
 
             <div class="mt-3">
@@ -132,7 +157,15 @@
           <section class="card" style="grid-column: 2 / 3;">
             <h2 class="section-title" style="margin-top:0">Sistema</h2>
 
-            <div class="soft-box" style="background: var(--primary-soft); border-color:#cfe3fb; margin-bottom:10px;">
+            <div class="soft-box" style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+              <div>
+                <div style="font-weight:800;">Tema</div>
+                <div style="color: var(--muted); font-size: 13px;">Cambiar entre modo claro y oscuro</div>
+              </div>
+              <button class="btn btn-secondary" type="button" data-theme-toggle aria-label="Cambiar tema">Cambiar</button>
+            </div>
+
+            <div class="soft-box" style="background: var(--primary-soft); border-color: var(--primary-border-soft); margin-bottom:10px;">
               <div style="font-weight:800;">Versión del Sistema</div>
               <div style="color: var(--muted);">v1.0.0</div>
             </div>

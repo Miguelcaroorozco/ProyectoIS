@@ -19,7 +19,7 @@
       </div>
 
       <nav class="nav" aria-label="Navegación">
-        <a href="index.html">Dashboard</a>
+        <a href="index.html">Inicio</a>
         <a href="actividades.html">Actividades</a>
         <a href="nueva-actividad.html">Nueva Actividad</a>
         <a href="busqueda-avanzada.html">Búsqueda Avanzada</a>
@@ -39,6 +39,12 @@
           </svg>
         </button>
         <div style="display:flex; align-items:center; gap:14px;">
+          <button class="icon-btn" type="button" data-theme-toggle aria-label="Cambiar tema" title="Cambiar tema">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
           <div class="topdot" title="Notificaciones"></div>
           <div class="avatar" title="Perfil"></div>
         </div>
@@ -74,7 +80,7 @@
           <aside class="d-grid" style="gap: 16px; align-content:start;">
             <div class="card">
               <div style="font-weight:800; margin-bottom:10px;">Sugerencias</div>
-              <ul class="mb-0" style="color:#334155;">
+              <ul class="mb-0" style="color: var(--muted);">
                 <li>Describe el tipo de actividad</li>
                 <li>Menciona el público objetivo</li>
                 <li>Indica la duración aproximada</li>
@@ -85,7 +91,7 @@
             <div class="card">
               <div style="font-weight:800; margin-bottom:10px;">Ejemplos de Uso</div>
 
-              <div class="soft-box" style="background: var(--primary-soft); border-color:#cfe3fb; margin-bottom:10px;">
+              <div class="soft-box" style="background: var(--primary-soft); border-color: var(--primary-border-soft); margin-bottom:10px;">
                 <div style="font-weight:800; color: var(--primary);">Descripción</div>
                 <div style="color: var(--muted);">Genera descripciones detalladas</div>
               </div>
