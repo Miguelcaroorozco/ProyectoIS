@@ -5,9 +5,9 @@
   --border:#e4e7f5;
   --text:#0b1023;
   --muted:#5a6a93;
-  --primary:#2a5bd7;
-  --primary-2:#234bb5;
-  --primary-soft:#e8efff;
+  --primary:#7c3aed;
+  --primary-2:#6d28d9;
+  --primary-soft:#ede9fe;
   --success-soft:#ecf0ff;
   --warning-soft:#edf1ff;
   --purple-soft:#f1ecff;
@@ -140,7 +140,7 @@ body.sidebar-collapsed .sidebar{
   width:8px;
   height:8px;
   border-radius:999px;
-  background:#7c3aed;
+  background:var(--primary);
 }
 
 .avatar{
@@ -276,7 +276,7 @@ body.sidebar-collapsed .sidebar{
 
 .pill.admin{
   background:var(--primary-soft);
-  border-color:#cfe3fb;
+  border-color:#ddd6fe;
   color:var(--primary);
 }
 
