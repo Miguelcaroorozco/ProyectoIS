@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.env/
+
+# Environment variables (NO subir secretos)
+.env
+.env.*
+!.env.example
+
+# Django
+*.log
+local_settings.py
+
+# SQLite (si queda por defecto)
+db.sqlite3
+
+# Django static collect
+staticfiles/
+
+# Opcional: NO versionar migraciones (no recomendado en la mayoría de equipos)
+# Si quieres commitearlas, borra estas dos líneas.
+**/migrations/*.py
+!**/migrations/__init__.py

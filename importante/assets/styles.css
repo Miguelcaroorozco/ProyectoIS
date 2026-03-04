@@ -130,7 +130,37 @@ body.sidebar-collapsed .sidebar{
   color:var(--nav-text);
 }
 
+.nav-logout-form{margin:0; display:block}
+
+.nav-logout-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  color:var(--nav-text);
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  font:inherit;
+  text-align:left;
+  outline:none;
+  box-shadow:none;
+  appearance:none;
+  -webkit-appearance:none;
+}
+
 .nav a:hover{background:var(--surface-2)}
+
+.nav-logout-btn:hover{background:var(--surface-2)}
+
+.nav-logout-btn:focus{outline:none}
+
+.nav-logout-btn:focus-visible{
+  outline:2px solid var(--primary);
+  outline-offset:2px;
+}
 
 .nav a.active{
   background:var(--primary);

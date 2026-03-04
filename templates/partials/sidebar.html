@@ -1,0 +1,32 @@
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">U</div>
+    <div>
+      <div class="brand-title">UNITECNAR</div>
+      <div class="brand-sub">Sistema de Gestión de Extensión</div>
+    </div>
+  </div>
+
+  <nav class="nav" aria-label="Navegación">
+    <a {% if active == 'index' %}class="active"{% endif %} href="{% url 'index' %}">Inicio</a>
+    <a {% if active == 'actividades' %}class="active"{% endif %} href="{% url 'actividades' %}">Actividades</a>
+    <a {% if active == 'nueva_actividad' %}class="active"{% endif %} href="{% url 'nueva_actividad' %}">Nueva Actividad</a>
+    <a {% if active == 'busqueda_avanzada' %}class="active"{% endif %} href="{% url 'busqueda_avanzada' %}">Búsqueda Avanzada</a>
+    <a {% if active == 'reportes' %}class="active"{% endif %} href="{% url 'reportes' %}">Reportes</a>
+    <a {% if active == 'generador_ia' %}class="active"{% endif %} href="{% url 'generador_ia' %}">Generador IA</a>
+    <a {% if active == 'historial' %}class="active"{% endif %} href="{% url 'historial' %}">Historial</a>
+    <a {% if active == 'usuarios' %}class="active"{% endif %} href="{% url 'usuarios' %}">Usuarios</a>
+    <a {% if active == 'configuracion' %}class="active"{% endif %} href="{% url 'configuracion' %}">Configuración</a>
+    <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
+      {% csrf_token %}
+      <button type="submit" class="nav-logout-btn">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" style="width:18px; height:18px; flex:0 0 18px;">
+          <path d="M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17 9l3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Cerrar sesión</span>
+      </button>
+    </form>
+  </nav>
+</aside>
