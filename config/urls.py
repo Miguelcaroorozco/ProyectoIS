@@ -1,30 +1,42 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    # Force password reset to use the app UI even if the user ends up
+    # on the Django admin login/reset screens.
+    path(
+        'admin/password_reset/',
+        RedirectView.as_view(pattern_name='autenticacion:password_reset', permanent=False),
+    ),
+    path(
+        'admin/password_reset/done/',
+        RedirectView.as_view(
+            pattern_name='autenticacion:password_reset_done', permanent=False
+        ),
+    ),
+    path(
+        'admin/reset/<uidb64>/<token>/',
+        RedirectView.as_view(
+            pattern_name='autenticacion:password_reset_confirm', permanent=False
+        ),
+    ),
+    path(
+        'admin/reset/done/',
+        RedirectView.as_view(
+            pattern_name='autenticacion:password_reset_complete', permanent=False
+        ),
+    ),
     path('admin/', admin.site.urls),
-    path('configuracion/', include('configuracion.urls')),
-    path('configuracion.html', include('configuracion.urls')),
-    path('', include('inicio.urls')),
+    path('', include(('core.autenticacion.urls', 'autenticacion'), namespace='autenticacion')),
+    path('configuracion/', include('apps.configuracion.urls')),
+    path('configuracion.html', include('apps.configuracion.urls')),
+    path('usuarios/', include('apps.gestion_usuarios.urls')),
+    path('usuarios.html', include('apps.gestion_usuarios.urls')),
+    path('', include('apps.inicio.urls')),
 ]
 
 if settings.DEBUG:

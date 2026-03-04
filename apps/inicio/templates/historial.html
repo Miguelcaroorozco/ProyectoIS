@@ -1,0 +1,35 @@
+{% extends 'app_base.html' %}
+
+{% block title %}UNITECNAR - Historial{% endblock %}
+{% block sidebar %}{% include 'partials/sidebar.html' with active='historial' %}{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Historial de Cambios</h1>
+  <p class="page-subtitle">Registro de todas las modificaciones realizadas</p>
+
+  <div class="card" style="max-width: 1100px; margin: 0 auto;">
+    <h2 class="section-title" style="margin-top:0">Actividad Reciente</h2>
+
+    <div class="soft-box" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
+      <div>
+        <div style="font-weight:800;">Actividad creada</div>
+        <div style="color: var(--muted); font-size: 13px;">Se registró una nueva actividad de extensión</div>
+        <div style="color: var(--muted); font-size: 12px; margin-top:4px;">Usuario Demo · Hace 2 horas</div>
+      </div>
+      <span class="pill">Creación</span>
+    </div>
+
+    <div class="soft-box" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div>
+        <div style="font-weight:800;">Actividad modificada</div>
+        <div style="color: var(--muted); font-size: 13px;">Se actualizó la información de una actividad existente</div>
+        <div style="color: var(--muted); font-size: 12px; margin-top:4px;">Usuario Demo · Hace 5 horas</div>
+      </div>
+      <span class="pill">Edición</span>
+    </div>
+
+    <div class="mt-4 text-center" style="color: #94a3b8;">
+      No hay más cambios recientes
+    </div>
+  </div>
+{% endblock %}

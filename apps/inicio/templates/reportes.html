@@ -1,0 +1,42 @@
+{% extends 'app_base.html' %}
+
+{% block title %}UNITECNAR - Reportes{% endblock %}
+{% block sidebar %}{% include 'partials/sidebar.html' with active='reportes' %}{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Generación de Reportes</h1>
+  <p class="page-subtitle">Genera reportes personalizados de tus actividades</p>
+
+  <div class="card" style="max-width: 1100px; margin: 0 auto;">
+    <h2 class="section-title" style="margin-top:0">Configurar Reporte</h2>
+
+    <div class="field" style="max-width: 520px;">
+      <label style="display:block; font-size:12px; color: var(--label); margin:0 0 6px; font-weight:700;">Tipo de Reporte</label>
+      <select class="select" aria-label="Tipo de reporte">
+        <option selected>Reporte General</option>
+        <option>Por Tipología</option>
+        <option>Por Programa</option>
+        <option>Mensual</option>
+        <option>Anual</option>
+        <option>Personalizado</option>
+      </select>
+    </div>
+
+    <div class="mt-4 d-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+      <button class="btn" type="button">Descargar Excel (CSV)</button>
+      <button class="btn btn-secondary" type="button">Ver Reporte</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width: 1100px; margin: 16px auto 0;">
+    <h2 class="section-title" style="margin-top:0">Información</h2>
+    <ul class="mb-0" style="color: var(--muted);">
+      <li><strong>Reporte General:</strong> Incluye todas tus actividades registradas</li>
+      <li><strong>Por Tipología:</strong> Filtra actividades por tipo (Taller, Seminario, etc.)</li>
+      <li><strong>Por Programa:</strong> Filtra actividades por programa académico</li>
+      <li><strong>Mensual:</strong> Actividades de un mes específico</li>
+      <li><strong>Anual:</strong> Todas las actividades de un año</li>
+      <li><strong>Personalizado:</strong> Define tu propio rango de fechas</li>
+    </ul>
+  </div>
+{% endblock %}

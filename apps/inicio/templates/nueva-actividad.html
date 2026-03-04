@@ -1,0 +1,113 @@
+{% extends 'app_base.html' %}
+
+{% block title %}UNITECNAR - Nueva Actividad{% endblock %}
+{% block sidebar %}{% include 'partials/sidebar.html' with active='nueva_actividad' %}{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Registrar Nueva Actividad</h1>
+  <p class="page-subtitle">Completa el formulario con los datos de la actividad de extensión</p>
+
+  <div class="card" style="max-width: 980px; margin: 0 auto;">
+    <h2 class="section-title" style="margin-top:0">Información General</h2>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Mes</label>
+        <select class="select" aria-label="Mes">
+          <option selected>Seleccionar mes</option>
+          <option>Enero</option>
+          <option>Febrero</option>
+          <option>Marzo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Periodo</label>
+        <select class="select" aria-label="Periodo">
+          <option selected>Seleccionar periodo</option>
+          <option>2026-1</option>
+          <option>2026-2</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Fecha de Inicio</label>
+        <input class="input" type="date" aria-label="Fecha de inicio" />
+      </div>
+      <div class="field">
+        <label>Fecha de Fin</label>
+        <input class="input" type="date" aria-label="Fecha de fin" />
+      </div>
+
+      <div class="field">
+        <label>Tipología</label>
+        <select class="select" aria-label="Tipología">
+          <option selected>Seleccionar tipología</option>
+          <option>Taller</option>
+          <option>Seminario</option>
+          <option>Curso</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Modalidad</label>
+        <select class="select" aria-label="Modalidad">
+          <option selected>Seleccionar modalidad</option>
+          <option>Presencial</option>
+          <option>Virtual</option>
+        </select>
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Programa</label>
+        <select class="select" aria-label="Programa">
+          <option selected>Seleccionar programa</option>
+          <option>Ingeniería</option>
+          <option>Administración</option>
+        </select>
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Nombre de la Actividad</label>
+        <input class="input" type="text" placeholder="" aria-label="Nombre de la actividad" />
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Descripción</label>
+        <textarea class="textarea" aria-label="Descripción"></textarea>
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Objetivo</label>
+        <textarea class="textarea" aria-label="Objetivo"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Número de Participantes</label>
+        <input class="input" type="number" value="0" aria-label="Número de participantes" />
+      </div>
+      <div class="field">
+        <label>Horas Dedicadas</label>
+        <input class="input" type="number" value="0" aria-label="Horas dedicadas" />
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Recursos Utilizados</label>
+        <textarea class="textarea" aria-label="Recursos utilizados"></textarea>
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Resultados</label>
+        <textarea class="textarea" aria-label="Resultados"></textarea>
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Observaciones</label>
+        <textarea class="textarea" aria-label="Observaciones"></textarea>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <a class="btn btn-secondary" href="{% url 'actividades' %}">Cancelar</a>
+      <button class="btn" type="button">Guardar Actividad</button>
+    </div>
+  </div>
+{% endblock %}

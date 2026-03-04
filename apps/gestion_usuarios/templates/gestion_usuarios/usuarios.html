@@ -1,0 +1,77 @@
+{% extends 'app_base.html' %}
+
+{% block title %}UNITECNAR - Usuarios{% endblock %}
+{% block sidebar %}{% include 'partials/sidebar.html' with active='usuarios' %}{% endblock %}
+
+{% block content %}
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+          <div>
+            <h1 class="page-title">Gestión de Usuarios</h1>
+            <p class="page-subtitle">Administra los usuarios del sistema</p>
+          </div>
+          <a class="btn" href="{% url 'usuarios_nuevo' %}">Nuevo Usuario</a>
+        </div>
+
+        <section class="grid-4" aria-label="Resumen usuarios" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+          <div class="card">
+            <p class="card-title">Total Usuarios</p>
+            <p class="metric">{{ total_usuarios }}</p>
+          </div>
+          <div class="card">
+            <p class="card-title">Administradores</p>
+            <p class="metric" style="color: var(--primary);">{{ total_administradores }}</p>
+          </div>
+          <div class="card">
+            <p class="card-title">Docentes</p>
+            <p class="metric" style="color: var(--primary);">{{ total_docentes }}</p>
+          </div>
+        </section>
+
+        <div class="card" style="max-width: 1100px; margin: 16px auto 0;">
+          <h2 class="section-title" style="margin-top:0">Lista de Usuarios</h2>
+
+          {% if messages %}
+            <div class="mb-3">
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% for usuario in usuarios %}
+            <div class="soft-box usuarios-item">
+              <div class="usuarios-meta">
+                <div class="usuarios-avatar">
+                  {% if usuario.primer_nombre %}
+                    {{ usuario.primer_nombre|slice:':1'|upper }}
+                  {% elif usuario.user.username %}
+                    {{ usuario.user.username|slice:':1'|upper }}
+                  {% else %}
+                    U
+                  {% endif %}
+                </div>
+                <div>
+                  <div style="font-weight:800;">
+                    {% if usuario.primer_nombre or usuario.primer_apellido %}
+                      {{ usuario.primer_nombre }} {{ usuario.primer_apellido }}
+                    {% else %}
+                      {{ usuario.user.username }}
+                    {% endif %}
+                  </div>
+                  <div style="color: var(--muted); font-size: 13px;">{{ usuario.user.email|default:usuario.correo }}</div>
+                </div>
+              </div>
+              <div class="usuarios-actions">
+                {% if usuario.rol %}
+                  <span class="pill {% if usuario.rol.codigo == 'administrador' %}admin{% endif %}">{{ usuario.rol.nombre }}</span>
+                {% else %}
+                  <span class="pill">Sin rol</span>
+                {% endif %}
+                <a class="btn btn-secondary" href="{% url 'usuarios_editar' usuario.id %}">Editar</a>
+              </div>
+            </div>
+          {% empty %}
+            <div class="mt-4 text-center" style="color: var(--placeholder-text);">No hay usuarios registrados</div>
+          {% endfor %}
+        </div>
+{% endblock %}
