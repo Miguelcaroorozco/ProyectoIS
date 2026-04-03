@@ -11,7 +11,7 @@ User = get_user_model()
 
 
 
-class FormCorreoUsuario(forms.ModelForm):
+class FormularioCorreoUsuario(forms.ModelForm):
     class Meta:
         model = User
         fields = ['email']
@@ -19,7 +19,7 @@ class FormCorreoUsuario(forms.ModelForm):
 
 
 
-class FormUsuario(forms.ModelForm):
+class FormularioUsuario(forms.ModelForm):
     class Meta:
         model = Usuario
         fields = [
@@ -32,7 +32,7 @@ class FormUsuario(forms.ModelForm):
         ]
 
 
-class FormPreferenciasNotificaciones(forms.ModelForm):
+class FormularioPreferenciasNotificaciones(forms.ModelForm):
     class Meta:
         model = PreferenciasNotificaciones
         fields = [
@@ -48,7 +48,7 @@ class FormPreferenciasNotificaciones(forms.ModelForm):
 
 
 
-class FormContrasena(PasswordChangeForm):
+class FormularioContrasena(PasswordChangeForm):
     old_password = forms.CharField(
         label='Contraseña Actual',
         widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}),
