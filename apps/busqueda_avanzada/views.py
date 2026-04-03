@@ -3,8 +3,5 @@ from django.shortcuts import render
 
 
 @login_required
-def index(request):
-	return render(request, 'index.html')
-
-
-
+def busqueda_avanzada(request):
+    return render(request, 'busqueda_avanzada/busqueda-avanzada.html')

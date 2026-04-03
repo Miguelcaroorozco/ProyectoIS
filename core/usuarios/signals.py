@@ -20,9 +20,10 @@ def asegurar_roles(sender, **kwargs):
 
 @receiver(post_save, sender=User)
 def asegurar_usuario_existe(sender, instance, created, **kwargs):
+    codigo_rol = 'administrador' if getattr(instance, 'is_superuser', False) else 'usuario'
     rol_por_defecto = None
     try:
-        rol_por_defecto = Rol.objects.get(codigo='usuario')
+        rol_por_defecto = Rol.objects.get(codigo=codigo_rol)
     except Rol.DoesNotExist:
         pass
 

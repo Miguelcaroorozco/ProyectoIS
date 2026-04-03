@@ -36,6 +36,12 @@ urlpatterns = [
     path('configuracion.html', include('apps.configuracion.urls')),
     path('usuarios/', include('apps.gestion_usuarios.urls')),
     path('usuarios.html', include('apps.gestion_usuarios.urls')),
+    path('', include('apps.actividades.urls')),
+    path('', include('apps.nueva_actividad.urls')),
+    path('', include('apps.busqueda_avanzada.urls')),
+    path('', include('apps.reportes.urls')),
+    path('', include('apps.historial.urls')),
+    path('', include('apps.generador_ia.urls')),
     path('', include('apps.inicio.urls')),
 ]
 

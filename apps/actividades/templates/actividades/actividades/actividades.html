@@ -9,7 +9,9 @@
       <h1 class="page-title">Actividades Registradas</h1>
       <p class="page-subtitle">Gestiona todas las actividades de extensión</p>
     </div>
+    {% if usuario_rol_codigo == 'administrador' %}
     <a class="btn" href="{% url 'nueva_actividad' %}">+ Nueva Actividad</a>
+    {% endif %}
   </div>
 
   <div class="card">
@@ -21,8 +23,10 @@
 
     <div class="placeholder">No hay actividades registradas</div>
 
+    {% if usuario_rol_codigo == 'administrador' %}
     <div class="mt-3 d-flex justify-content-center">
       <a class="btn" href="{% url 'nueva_actividad' %}">+ Registrar Primera Actividad</a>
     </div>
+    {% endif %}
   </div>
 {% endblock %}
