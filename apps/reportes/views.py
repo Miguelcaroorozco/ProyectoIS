@@ -17,8 +17,6 @@ TIPOS_REPORTE = {
 
 
 def _filas_reporte(tipo_reporte, usuario):
-    # El proyecto aun no tiene un modelo de Actividad persistente,
-    # asi que se devuelve un reporte util de estado para no dejar la UI vacia.
     ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return [
         {
