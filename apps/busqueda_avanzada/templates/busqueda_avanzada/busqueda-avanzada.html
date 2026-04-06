@@ -10,51 +10,84 @@
   <div class="card" style="max-width: 980px; margin: 0 auto;">
     <h2 class="section-title" style="margin-top:0">Filtros de Búsqueda</h2>
 
+    <form method="get">
     <div class="form-grid">
       <div class="field" style="grid-column: 1 / -1;">
         <label>Término de búsqueda</label>
-        <input class="input" type="search" placeholder="Buscar por nombre, descripción..." aria-label="Término de búsqueda" />
+        <input class="input" name="q" value="{{ filtros.q|default:'' }}" type="search" placeholder="Buscar por nombre, descripción..." aria-label="Término de búsqueda" />
       </div>
 
       <div class="field">
         <label>Modalidad</label>
-        <select class="select" aria-label="Modalidad">
-          <option selected>Seleccionar modalidad</option>
-          <option>Presencial</option>
-          <option>Virtual</option>
+        <select class="select" name="modalidad" aria-label="Modalidad">
+          <option value="">Seleccionar modalidad</option>
+          {% for valor, etiqueta in modalidades %}
+          <option value="{{ valor }}" {% if filtros.modalidad == valor %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
         </select>
       </div>
 
       <div class="field">
         <label>Tipología</label>
-        <select class="select" aria-label="Tipología">
-          <option selected>Seleccionar tipología</option>
-          <option>Taller</option>
-          <option>Seminario</option>
-          <option>Curso</option>
+        <select class="select" name="tipologia" aria-label="Tipología">
+          <option value="">Seleccionar tipología</option>
+          {% for valor, etiqueta in tipologias %}
+          <option value="{{ valor }}" {% if filtros.tipologia == valor %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
         </select>
       </div>
 
       <div class="field" style="grid-column: 1 / -1;">
         <label>Programa</label>
-        <select class="select" aria-label="Programa">
-          <option selected>Seleccionar programa</option>
-          <option>Ingeniería</option>
-          <option>Administración</option>
-        </select>
+        <input class="input" name="programa" value="{{ filtros.programa|default:'' }}" type="text" placeholder="Ej. Ingeniería de Sistemas" aria-label="Programa" />
       </div>
     </div>
 
     <div class="footer-actions" style="justify-content:space-between">
-      <button class="btn btn-secondary" type="button">Limpiar</button>
-      <button class="btn" type="button">Buscar</button>
+      <a class="btn btn-secondary" href="{% url 'busqueda_avanzada' %}">Limpiar</a>
+      <button class="btn" type="submit">Buscar</button>
     </div>
+    </form>
   </div>
 
   <div style="max-width: 980px; margin: 18px auto 0;">
     <h2 class="section-title">Resultados de Búsqueda</h2>
     <div class="card">
+      {% if not busqueda_realizada %}
       <div class="placeholder">Utiliza los filtros para buscar actividades.</div>
+      {% elif actividades %}
+      <div style="margin-bottom: 12px;">Resultados encontrados: {{ total_resultados }}</div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Programa</th>
+              <th>Tipología</th>
+              <th>Modalidad</th>
+              <th>Periodo</th>
+              <th>Fechas</th>
+              <th>Participantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for actividad in actividades %}
+            <tr>
+              <td>{{ actividad.nombre }}</td>
+              <td>{{ actividad.programa }}</td>
+              <td>{{ actividad.get_tipologia_display }}</td>
+              <td>{{ actividad.get_modalidad_display }}</td>
+              <td>{{ actividad.periodo }}</td>
+              <td>{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
+              <td>{{ actividad.numero_participantes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="placeholder">No se encontraron actividades con los filtros seleccionados.</div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
