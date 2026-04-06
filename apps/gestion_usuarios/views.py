@@ -9,23 +9,8 @@ from core.usuarios.models import Usuario
 from .forms import FormCrearUsuario, FormEditarUsuario
 
 
-def _tiene_acceso_gestion_usuarios(request):
-	if getattr(request.user, 'is_superuser', False):
-		return True
-
-	perfil = Usuario.objects.select_related('rol').filter(user_id=request.user.id).first()
-	if perfil and perfil.rol and perfil.rol.codigo == 'administrador':
-		return True
-
-	messages.error(request, 'No tienes permisos para acceder al módulo de usuarios.')
-	return False
-
-
 @login_required
 def lista_usuarios_view(request):
-	if not _tiene_acceso_gestion_usuarios(request):
-		return redirect('index')
-
 	User = get_user_model()
 	usuarios_auth = User.objects.only('id', 'username', 'email').order_by('username')
 	for usuario_auth in usuarios_auth:
@@ -52,9 +37,6 @@ def lista_usuarios_view(request):
 
 @login_required
 def nuevo_usuario_view(request):
-	if not _tiene_acceso_gestion_usuarios(request):
-		return redirect('index')
-
 	if request.method == 'POST':
 		form = FormCrearUsuario(request.POST)
 		if form.is_valid():
@@ -80,9 +62,6 @@ def nuevo_usuario_view(request):
 
 @login_required
 def editar_usuario_view(request, usuario_id: int):
-	if not _tiene_acceso_gestion_usuarios(request):
-		return redirect('index')
-
 	usuario = get_object_or_404(Usuario.objects.select_related('user', 'rol'), pk=usuario_id)
 
 	if request.method == 'POST':

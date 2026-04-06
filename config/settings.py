@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'core.autenticacion',
     'apps.inicio',
     'apps.actividades',
-    'apps.nueva_actividad',
     'apps.busqueda_avanzada',
     'apps.reportes',
     'apps.historial',

@@ -2,24 +2,26 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
-from core.usuarios.models import Usuario
-
-
-def _puede_crear_actividades(request):
-    if getattr(request.user, 'is_superuser', False):
-        return True
-
-    perfil = Usuario.objects.select_related('rol').filter(user_id=request.user.id).first()
-    if perfil and perfil.rol and perfil.rol.codigo == 'administrador':
-        return True
-
-    messages.error(request, 'No tienes permisos para crear actividades.')
-    return False
+from apps.actividades.forms import ActividadForm
 
 
 @login_required
 def nueva_actividad(request):
-    if not _puede_crear_actividades(request):
-        return redirect('actividades')
+    if request.method == 'POST':
+        form = ActividadForm(request.POST)
+        if form.is_valid():
+            actividad = form.save(commit=False)
+            actividad.creado_por = request.user
+            actividad.save()
+            messages.success(request, 'Actividad registrada correctamente.')
+            return redirect('actividades')
+    else:
+        form = ActividadForm()
 
-    return render(request, 'nueva_actividad/nueva-actividad.html')
+    return render(
+        request,
+        'nueva_actividad/nueva-actividad.html',
+        {
+            'form': form,
+        },
+    )
