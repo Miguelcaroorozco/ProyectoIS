@@ -14,6 +14,7 @@
     <a {% if active == 'busqueda_avanzada' %}class="active"{% endif %} href="{% url 'busqueda_avanzada' %}">Búsqueda Avanzada</a>
     <a {% if active == 'reportes' %}class="active"{% endif %} href="{% url 'reportes' %}">Reportes</a>
     <a {% if active == 'historial' %}class="active"{% endif %} href="{% url 'historial' %}">Historial</a>
+    <a {% if active == 'generador_ia' %}class="active"{% endif %} href="{% url 'generador_ia' %}">Generador IA</a>
     <a {% if active == 'usuarios' %}class="active"{% endif %} href="{% url 'usuarios' %}">Usuarios</a>
     <a {% if active == 'configuracion' %}class="active"{% endif %} href="{% url 'configuracion' %}">Configuración</a>
     <form method="post" action="{% url 'autenticacion:logout' %}" class="nav-logout-form">
