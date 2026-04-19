@@ -39,7 +39,12 @@
 
       <div class="field" style="grid-column: 1 / -1;">
         <label>Programa</label>
-        <input class="input" name="programa" value="{{ filtros.programa|default:'' }}" type="text" placeholder="Ej. Ingeniería de Sistemas" aria-label="Programa" />
+        <select class="select" name="programa" aria-label="Programa">
+          <option value="">Seleccionar programa</option>
+          {% for programa in programas_disponibles %}
+          <option value="{{ programa }}" {% if filtros.programa == programa %}selected{% endif %}>{{ programa }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
 

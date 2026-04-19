@@ -62,7 +62,8 @@
 
               <div class="field mt-3">
                 <label>Facultad</label>
-                <input class="input" type="text" name="facultad" value="{{ form_usuario.facultad.value|default_if_none:'' }}" />
+                {{ form_usuario.facultad }}
+                {{ form_usuario.facultad.errors }}
               </div>
 
               <div class="field mt-3">

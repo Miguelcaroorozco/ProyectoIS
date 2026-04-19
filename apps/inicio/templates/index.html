@@ -10,29 +10,58 @@
   <section class="grid-4" aria-label="Métricas">
     <div class="card">
       <p class="card-title">Total Actividades</p>
-      <p class="metric">0</p>
+      <p class="metric">{{ total_actividades }}</p>
       <p class="metric-sub">Actividades registradas</p>
     </div>
     <div class="card">
       <p class="card-title">Este Mes</p>
-      <p class="metric">0</p>
-      <p class="metric-sub">Actividades en febrero</p>
+      <p class="metric">{{ actividades_mes }}</p>
+      <p class="metric-sub">Actividades en {{ mes_actual }}</p>
     </div>
     <div class="card">
       <p class="card-title">Participantes</p>
-      <p class="metric">0</p>
+      <p class="metric">{{ total_participantes }}</p>
       <p class="metric-sub">Total de participantes</p>
     </div>
     <div class="card">
       <p class="card-title">Horas Dedicadas</p>
-      <p class="metric">0</p>
+      <p class="metric">{{ total_horas }}</p>
       <p class="metric-sub">Horas totales invertidas</p>
     </div>
   </section>
 
   <h2 class="section-title">Actividades Recientes</h2>
   <div class="card">
+    {% if actividades_recientes %}
+    <div style="overflow:auto;">
+      <table style="width:100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Nombre</th>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Programa</th>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Tipología</th>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Periodo</th>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Inicio</th>
+            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--border);">Participantes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for actividad in actividades_recientes %}
+          <tr>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.nombre }}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.programa }}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.get_tipologia_display }}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.periodo }}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.fecha_inicio|date:'Y-m-d' }}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--border);">{{ actividad.numero_participantes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
     <div class="placeholder">No hay actividades registradas</div>
     <div class="mt-3 text-center" style="color: var(--muted);">Comienza registrando tu primera actividad</div>
+    {% endif %}
   </div>
 {% endblock %}

@@ -1,5 +1,7 @@
 from django import forms
 
+from core.usuarios.models import Programa
+
 from .models import Actividad
 
 
@@ -30,7 +32,7 @@ class ActividadForm(forms.ModelForm):
             'fecha_fin': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
             'tipologia': forms.Select(attrs={'class': 'select'}),
             'modalidad': forms.Select(attrs={'class': 'select'}),
-            'programa': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Programa académico'}),
+            'programa': forms.Select(attrs={'class': 'select'}),
             'nombre': forms.TextInput(attrs={'class': 'input'}),
             'descripcion': forms.Textarea(attrs={'class': 'textarea'}),
             'objetivo': forms.Textarea(attrs={'class': 'textarea'}),
@@ -46,6 +48,8 @@ class ActividadForm(forms.ModelForm):
         self.fields['mes'].choices = [('', 'Seleccionar mes'), *Actividad.MESES]
         self.fields['tipologia'].choices = [('', 'Seleccionar tipología'), *Actividad.TIPOLOGIAS]
         self.fields['modalidad'].choices = [('', 'Seleccionar modalidad'), *Actividad.MODALIDADES]
+        programas = Programa.objects.order_by('nombre').values_list('nombre', flat=True)
+        self.fields['programa'].choices = [('', 'Seleccionar programa'), *[(nombre, nombre) for nombre in programas]]
 
     def clean(self):
         cleaned_data = super().clean()

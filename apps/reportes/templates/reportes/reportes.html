@@ -35,12 +35,12 @@
 
         <div class="field">
           <label style="display:block; font-size:12px; color: var(--label); margin:0 0 6px; font-weight:700;">Programa</label>
-          <input class="input" list="programas-lista" name="programa" value="{{ filtros.programa|default:'' }}" placeholder="Ej. Ingenieria de Sistemas" />
-          <datalist id="programas-lista">
+          <select class="select" name="programa" aria-label="Programa">
+            <option value="">Todos</option>
             {% for programa in programas_disponibles %}
-            <option value="{{ programa }}"></option>
+            <option value="{{ programa }}" {% if filtros.programa == programa %}selected{% endif %}>{{ programa }}</option>
             {% endfor %}
-          </datalist>
+          </select>
         </div>
 
         <div class="field">

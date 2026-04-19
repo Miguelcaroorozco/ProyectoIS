@@ -9,6 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from apps.actividades.models import Actividad
+from core.usuarios.models import Programa
 
 
 TIPOS_REPORTE = {
@@ -42,7 +43,7 @@ def _filtrar_actividades(tipo_reporte, filtros):
         actividades = actividades.filter(tipologia=tipologia)
 
     if tipo_reporte == 'programa' and programa:
-        actividades = actividades.filter(programa__icontains=programa)
+        actividades = actividades.filter(programa=programa)
 
     if tipo_reporte == 'mensual':
         if mes:
@@ -145,11 +146,7 @@ def reportes(request):
         total_horas=Sum('horas_dedicadas'),
     )
 
-    programas_disponibles = (
-        Actividad.objects.order_by('programa')
-        .values_list('programa', flat=True)
-        .distinct()
-    )
+    programas_disponibles = Programa.objects.order_by('nombre').values_list('nombre', flat=True)
 
     anios_disponibles = sorted(
         {actividad.fecha_inicio.year for actividad in Actividad.objects.only('fecha_inicio')},
