@@ -553,7 +553,7 @@ body.theme-dark .field label{
 
 .textarea{
   width:100%;
-  min-height:92px;
+  min-height:72px;
   border-radius:12px;
   border:1px solid var(--border);
   padding:10px 12px;

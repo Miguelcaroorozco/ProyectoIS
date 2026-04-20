@@ -34,13 +34,13 @@ class ActividadForm(forms.ModelForm):
             'modalidad': forms.Select(attrs={'class': 'select'}),
             'programa': forms.Select(attrs={'class': 'select'}),
             'nombre': forms.TextInput(attrs={'class': 'input'}),
-            'descripcion': forms.Textarea(attrs={'class': 'textarea'}),
-            'objetivo': forms.Textarea(attrs={'class': 'textarea'}),
+            'descripcion': forms.Textarea(attrs={'class': 'textarea', 'rows': 3}),
+            'objetivo': forms.Textarea(attrs={'class': 'textarea', 'rows': 3}),
             'numero_participantes': forms.NumberInput(attrs={'class': 'input', 'min': 0}),
             'horas_dedicadas': forms.NumberInput(attrs={'class': 'input', 'min': 0}),
-            'recursos_utilizados': forms.Textarea(attrs={'class': 'textarea'}),
-            'resultados': forms.Textarea(attrs={'class': 'textarea'}),
-            'observaciones': forms.Textarea(attrs={'class': 'textarea'}),
+            'recursos_utilizados': forms.Textarea(attrs={'class': 'textarea', 'rows': 3}),
+            'resultados': forms.Textarea(attrs={'class': 'textarea', 'rows': 3}),
+            'observaciones': forms.Textarea(attrs={'class': 'textarea', 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
