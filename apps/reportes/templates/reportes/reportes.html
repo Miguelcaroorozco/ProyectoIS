@@ -293,6 +293,41 @@
 
           chartInstances.push(new Chart(chartNodes.modalidades, {
             type: 'doughnut',
+            plugins: [
+              {
+                id: 'percentLabels',
+                afterDatasetsDraw(chart) {
+                  const dataset = chart.data?.datasets?.[0];
+                  const values = Array.isArray(dataset?.data) ? dataset.data : [];
+                  const total = values.reduce((acc, value) => acc + (Number(value) || 0), 0);
+                  if (!total) {
+                    return;
+                  }
+
+                  const meta = chart.getDatasetMeta(0);
+                  const ctx = chart.ctx;
+                  ctx.save();
+                  ctx.fillStyle = colors.text;
+                  ctx.font = '700 12px Segoe UI, Arial, sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+
+                  meta.data.forEach((element, index) => {
+                    const rawValue = Number(values[index]) || 0;
+                    if (rawValue <= 0) {
+                      return;
+                    }
+
+                    const percent = (rawValue / total) * 100;
+                    const label = percent >= 10 ? `${Math.round(percent)}%` : `${percent.toFixed(1)}%`;
+                    const { x, y } = element.tooltipPosition();
+                    ctx.fillText(label, x, y);
+                  });
+
+                  ctx.restore();
+                },
+              },
+            ],
             data: {
               labels: modalidades.labels,
               datasets: [{
@@ -313,6 +348,18 @@
                 legend: {
                   position: 'bottom',
                   labels: { color: colors.text },
+                },
+                tooltip: {
+                  callbacks: {
+                    label(context) {
+                      const values = Array.isArray(context.dataset?.data) ? context.dataset.data : [];
+                      const total = values.reduce((acc, v) => acc + (Number(v) || 0), 0);
+                      const rawValue = Number(context.raw) || 0;
+                      const percent = total ? (rawValue / total) * 100 : 0;
+                      const percentText = total ? (percent >= 10 ? `${Math.round(percent)}%` : `${percent.toFixed(1)}%`) : '0%';
+                      return `${context.label}: ${rawValue} (${percentText})`;
+                    },
+                  },
                 },
               },
             },

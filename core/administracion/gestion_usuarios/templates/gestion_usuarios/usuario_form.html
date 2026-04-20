@@ -144,14 +144,6 @@
     </div>
 
     <section class="usuario-form-card">
-      {% if messages %}
-        <div class="message-list">
-          {% for message in messages %}
-            <div class="message-item {% if 'error' in message.tags %}error{% endif %}" role="alert">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
       {% if form.non_field_errors %}
         <div class="message-item error" role="alert">{{ form.non_field_errors }}</div>
       {% endif %}

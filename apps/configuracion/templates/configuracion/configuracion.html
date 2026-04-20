@@ -8,14 +8,6 @@
   <div class="page-shell">
           <h1 class="page-title">Configuración</h1>
           <p class="page-subtitle">Administra las preferencias del sistema</p>
-
-          {% if messages %}
-            <div class="mb-3">
-              {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
-              {% endfor %}
-            </div>
-          {% endif %}
   </div>
 
   <div class="d-grid page-shell page-grid configuracion-grid">

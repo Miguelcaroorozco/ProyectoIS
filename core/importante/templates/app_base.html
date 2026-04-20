@@ -32,6 +32,15 @@
       </header>
 
       <main class="main{% block main_class %}{% endblock %}">
+        {% if messages %}
+          <div class="page-shell">
+            <div class="mb-3">
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
         {% block content %}{% endblock %}
       </main>
     </div>

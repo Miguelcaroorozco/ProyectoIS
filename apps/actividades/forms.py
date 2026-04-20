@@ -1,8 +1,6 @@
 from django import forms
 
 from core.usuarios.models import Facultad, Programa
-from core.importante.form_choices import choices_presentes
-
 from .models import Actividad
 
 
@@ -56,22 +54,11 @@ class ActividadForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        meses_disponibles = Actividad.objects.order_by().values_list('mes', flat=True).distinct()
-        tipologias_disponibles = Actividad.objects.order_by().values_list('tipologia', flat=True).distinct()
-        modalidades_disponibles = Actividad.objects.order_by().values_list('modalidad', flat=True).distinct()
-
-        self.fields['mes'].choices = [
-            ('', 'Seleccionar mes'),
-            *(choices_presentes(meses_disponibles, Actividad.MESES) or Actividad.MESES),
-        ]
-        self.fields['tipologia'].choices = [
-            ('', 'Seleccionar tipología'),
-            *(choices_presentes(tipologias_disponibles, Actividad.TIPOLOGIAS) or Actividad.TIPOLOGIAS),
-        ]
-        self.fields['modalidad'].choices = [
-            ('', 'Seleccionar modalidad'),
-            *(choices_presentes(modalidades_disponibles, Actividad.MODALIDADES) or Actividad.MODALIDADES),
-        ]
+        # En creación/edición de actividades se deben mostrar todas las opciones
+        # definidas por el modelo (no solo las que ya existen en BD).
+        self.fields['mes'].choices = [('', 'Seleccionar mes'), *Actividad.MESES]
+        self.fields['tipologia'].choices = [('', 'Seleccionar tipología'), *Actividad.TIPOLOGIAS]
+        self.fields['modalidad'].choices = [('', 'Seleccionar modalidad'), *Actividad.MODALIDADES]
 
         selected_facultad_id = None
         if self.is_bound:

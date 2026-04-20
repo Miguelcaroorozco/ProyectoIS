@@ -203,14 +203,6 @@
     <section class="usuarios-card" aria-label="Listado de usuarios">
       <h2 class="usuarios-card-title">Lista de Usuarios</h2>
 
-      {% if messages %}
-        <div class="message-list">
-          {% for message in messages %}
-            <div class="message-item {% if 'error' in message.tags %}error{% endif %}" role="alert">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
       {% if usuarios %}
         <div class="usuarios-table-wrap">
           <table class="usuarios-table">
