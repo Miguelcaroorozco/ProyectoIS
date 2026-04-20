@@ -56,6 +56,12 @@
       </div>
 
       <div class="field" style="grid-column: 1 / -1;">
+        <label>Facultad</label>
+        {{ form.facultad }}
+        {{ form.facultad.errors }}
+      </div>
+
+      <div class="field" style="grid-column: 1 / -1;">
         <label>Programa</label>
         {{ form.programa }}
         {{ form.programa.errors }}
@@ -115,5 +121,59 @@
     </div>
     </form>
   </div>
+
+  <script>
+    (function () {
+      const facultadSelect = document.getElementById('id_facultad');
+      const programaSelect = document.getElementById('id_programa');
+      if (!facultadSelect || !programaSelect) return;
+
+      const urlBase = "{% url 'programas_por_facultad' %}";
+
+      function populateProgramas(programas, selectedProgram) {
+        programaSelect.innerHTML = '<option value="">Seleccionar programa</option>';
+        for (const p of programas) {
+          const opt = document.createElement('option');
+          opt.value = String(p.id);
+          opt.textContent = p.nombre;
+          programaSelect.appendChild(opt);
+        }
+        if (selectedProgram) {
+          programaSelect.value = selectedProgram;
+        }
+        programaSelect.disabled = false;
+      }
+
+      facultadSelect.addEventListener('change', async function () {
+        const facultadId = facultadSelect.value;
+        const selectedProgram = programaSelect.value;
+        programaSelect.disabled = true;
+        programaSelect.innerHTML = '<option value="">Seleccionar programa</option>';
+
+        try {
+          const url = facultadId
+            ? (urlBase + '?facultad_id=' + encodeURIComponent(facultadId))
+            : urlBase;
+
+          const response = await fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          });
+          if (!response.ok) return;
+
+          const data = await response.json();
+          const programas = (data && data.programas) ? data.programas : [];
+          populateProgramas(programas, selectedProgram);
+        } catch (e) {
+          // silent
+        }
+      });
+
+      // If the form re-renders with a selected faculty, load its programs.
+      if (facultadSelect.value) {
+        const event = new Event('change');
+        facultadSelect.dispatchEvent(event);
+      }
+    })();
+  </script>
 {% endblock %}
 

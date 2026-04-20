@@ -1,10 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from .forms import ActividadForm
 from .models import Actividad
+
+from core.usuarios.models import Programa
 
 
 @login_required
@@ -51,3 +54,15 @@ def nueva_actividad(request):
             'form': form,
         },
     )
+
+
+@login_required
+def programas_por_facultad(request):
+    facultad_id = (request.GET.get('facultad_id') or '').strip()
+    qs = Programa.objects.all()
+    if facultad_id:
+        qs = qs.filter(facultad_id=facultad_id)
+
+    programas = list(qs.order_by('nombre').values('id', 'nombre'))
+
+    return JsonResponse({'programas': programas})

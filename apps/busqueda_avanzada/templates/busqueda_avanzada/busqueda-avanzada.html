@@ -61,37 +61,22 @@
     <div class="form-grid">
       <div class="field" style="grid-column: 1 / -1;">
         <label>Término de búsqueda</label>
-        <input class="input" name="q" value="{{ filtros.q|default:'' }}" type="search" placeholder="Buscar por nombre, descripción..." aria-label="Término de búsqueda" />
+        {{ form.q }}
       </div>
 
       <div class="field">
         <label>Modalidad</label>
-        <select class="select" name="modalidad" aria-label="Modalidad">
-          <option value="">Seleccionar modalidad</option>
-          {% for valor, etiqueta in modalidades %}
-          <option value="{{ valor }}" {% if filtros.modalidad == valor %}selected{% endif %}>{{ etiqueta }}</option>
-          {% endfor %}
-        </select>
+        {{ form.modalidad }}
       </div>
 
       <div class="field">
         <label>Tipología</label>
-        <select class="select" name="tipologia" aria-label="Tipología">
-          <option value="">Seleccionar tipología</option>
-          {% for valor, etiqueta in tipologias %}
-          <option value="{{ valor }}" {% if filtros.tipologia == valor %}selected{% endif %}>{{ etiqueta }}</option>
-          {% endfor %}
-        </select>
+        {{ form.tipologia }}
       </div>
 
       <div class="field" style="grid-column: 1 / -1;">
         <label>Programa</label>
-        <select class="select" name="programa" aria-label="Programa">
-          <option value="">Seleccionar programa</option>
-          {% for programa in programas_disponibles %}
-          <option value="{{ programa }}" {% if filtros.programa == programa %}selected{% endif %}>{{ programa }}</option>
-          {% endfor %}
-        </select>
+        {{ form.programa }}
       </div>
     </div>
 

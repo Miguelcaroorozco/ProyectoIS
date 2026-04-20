@@ -432,6 +432,9 @@ body.theme-dark .field label{
 }
 
 .btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   height:42px;
   padding:0 14px;
   border-radius:12px;
@@ -439,6 +442,8 @@ body.theme-dark .field label{
   background:var(--primary);
   color:#fff;
   font-weight:700;
+  line-height:1;
+  text-decoration:none;
   cursor:pointer;
 }
 

@@ -10,7 +10,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from apps.actividades.models import Actividad
-from core.usuarios.models import Programa
+
+from .forms import ReportesFiltroForm
 
 
 TIPOS_REPORTE = {
@@ -106,12 +107,28 @@ def _parse_anio(valor):
 def _filtrar_actividades(tipo_reporte, filtros):
     actividades = Actividad.objects.all()
 
-    tipologia = filtros.get('tipologia', '').strip()
-    programa = filtros.get('programa', '').strip()
-    mes = filtros.get('mes', '').strip()
-    anio = _parse_anio(filtros.get('anio', '').strip())
-    fecha_inicio = filtros.get('fecha_inicio', '').strip()
-    fecha_fin = filtros.get('fecha_fin', '').strip()
+    tipologia = filtros.get('tipologia')
+    programa = filtros.get('programa')
+    mes = filtros.get('mes')
+    anio = filtros.get('anio')
+    fecha_inicio = filtros.get('fecha_inicio')
+    fecha_fin = filtros.get('fecha_fin')
+
+    if isinstance(tipologia, str):
+        tipologia = tipologia.strip()
+    if isinstance(programa, str):
+        programa = programa.strip()
+    if isinstance(mes, str):
+        mes = mes.strip()
+    if isinstance(anio, str):
+        anio = _parse_anio(anio.strip())
+    elif anio is not None:
+        anio = _parse_anio(anio)
+
+    if isinstance(fecha_inicio, str):
+        fecha_inicio = fecha_inicio.strip() or None
+    if isinstance(fecha_fin, str):
+        fecha_fin = fecha_fin.strip() or None
 
     if tipologia:
         actividades = actividades.filter(tipologia=tipologia)
@@ -203,12 +220,15 @@ def _crear_libro_excel(tipo_reporte, actividades):
 
 @login_required
 def reportes(request):
-    tipo_reporte = request.GET.get('tipo', 'general')
+    form = ReportesFiltroForm(request.GET or None, tipos_reporte=TIPOS_REPORTE)
+    if form.is_valid():
+        filtros = form.cleaned_data
+    else:
+        filtros = _construir_filtros(request)
+
+    tipo_reporte = filtros.get('tipo') or 'general'
     if tipo_reporte not in TIPOS_REPORTE:
         tipo_reporte = 'general'
-
-    filtros = _construir_filtros(request)
-    mostrar_reporte = True
 
     actividades = _filtrar_actividades(tipo_reporte, filtros)
     totales = actividades.aggregate(
@@ -217,21 +237,13 @@ def reportes(request):
     )
     datos_graficas = _construir_datos_graficas(actividades)
 
-    programas_disponibles = Programa.objects.order_by('nombre').values_list('nombre', flat=True)
-
     anios_disponibles = sorted(
         {actividad.fecha_inicio.year for actividad in Actividad.objects.only('fecha_inicio')},
         reverse=True,
     )
 
     contexto = {
-        'tipos_reporte': TIPOS_REPORTE,
-        'tipo_reporte': tipo_reporte,
-        'mostrar_reporte': mostrar_reporte,
-        'filtros': filtros,
-        'tipologias': Actividad.TIPOLOGIAS,
-        'meses': Actividad.MESES,
-        'programas_disponibles': programas_disponibles,
+        'form': form,
         'anios_disponibles': anios_disponibles,
         'actividades': actividades,
         'total_actividades': actividades.count(),
