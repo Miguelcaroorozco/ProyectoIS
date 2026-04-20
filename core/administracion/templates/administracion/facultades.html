@@ -1,0 +1,45 @@
+{% extends 'administracion/base_admin.html' %}
+
+{% block title %}Admin - Facultades{% endblock %}
+
+{% block content %}
+  <div class="header">
+    <div>
+      <h1 class="title">Facultades</h1>
+      <p class="subtitle">Registrar y consultar facultades</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <form method="post">
+      {% csrf_token %}
+      <div class="field"><label>Código</label>{{ form_facultad_admin.codigo }}{{ form_facultad_admin.codigo.errors }}</div>
+      <div class="field" style="margin-top:10px;"><label>Nombre</label>{{ form_facultad_admin.nombre }}{{ form_facultad_admin.nombre.errors }}</div>
+      <div class="field" style="margin-top:10px;"><label>Descripción</label>{{ form_facultad_admin.descripcion }}{{ form_facultad_admin.descripcion.errors }}</div>
+      <div style="margin-top:12px;"><button class="btn" type="submit">Guardar Facultad</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for facultad in facultades_registradas %}
+        <tr>
+          <td>{{ facultad.codigo }}</td>
+          <td>{{ facultad.nombre }}</td>
+          <td>{{ facultad.descripcion|default:'-' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">No hay facultades registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -2,8 +2,7 @@
   <div class="brand">
     <div class="brand-mark">U</div>
     <div>
-      <div class="brand-title">UNITECNAR</div>
-      <div class="brand-sub">Sistema de Gestión de Extensión</div>
+      <div class="brand-title">Gestor de actividades</div>
     </div>
   </div>
 
@@ -15,8 +14,10 @@
     <a {% if active == 'reportes' %}class="active"{% endif %} href="{% url 'reportes' %}">Reportes</a>
     <a {% if active == 'historial' %}class="active"{% endif %} href="{% url 'historial' %}">Historial</a>
     <a {% if active == 'generador_ia' %}class="active"{% endif %} href="{% url 'generador_ia' %}">Generador IA</a>
-    <a {% if active == 'usuarios' %}class="active"{% endif %} href="{% url 'usuarios' %}">Usuarios</a>
     <a {% if active == 'configuracion' %}class="active"{% endif %} href="{% url 'configuracion' %}">Configuración</a>
+    {% if usuario_rol_codigo == 'administrador' %}
+    <a {% if active == 'admin_panel' %}class="active"{% endif %} href="{% url 'admin_panel' %}">Panel Administrativo</a>
+    {% endif %}
     <form method="post" action="{% url 'autenticacion:logout' %}" class="nav-logout-form">
       {% csrf_token %}
       <button type="submit" class="nav-logout-btn">
@@ -30,3 +31,4 @@
     </form>
   </nav>
 </aside>
+

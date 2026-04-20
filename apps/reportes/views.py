@@ -1,5 +1,6 @@
 from io import BytesIO
 from urllib.parse import urlencode
+from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
@@ -22,6 +23,79 @@ TIPOS_REPORTE = {
 }
 
 
+def _construir_datos_graficas(actividades):
+    tipologia_labels = dict(Actividad.TIPOLOGIAS)
+    modalidad_labels = dict(Actividad.MODALIDADES)
+    meses_labels = dict(Actividad.MESES)
+    meses_orden = [codigo for codigo, _ in Actividad.MESES]
+
+    conteo_tipologia = defaultdict(int)
+    conteo_modalidad = defaultdict(int)
+    conteo_programa = defaultdict(int)
+
+    mensual_actividades = {mes: 0 for mes in meses_orden}
+    mensual_participantes = {mes: 0 for mes in meses_orden}
+    mensual_horas = {mes: 0 for mes in meses_orden}
+
+    for actividad in actividades:
+        conteo_tipologia[actividad.tipologia] += 1
+        conteo_modalidad[actividad.modalidad] += 1
+        conteo_programa[actividad.programa] += 1
+
+        mes_codigo = actividad.mes if actividad.mes in mensual_actividades else None
+        if mes_codigo:
+            mensual_actividades[mes_codigo] += 1
+            mensual_participantes[mes_codigo] += actividad.numero_participantes or 0
+            mensual_horas[mes_codigo] += actividad.horas_dedicadas or 0
+
+    tipologias_presentes = [
+        codigo
+        for codigo, _ in Actividad.TIPOLOGIAS
+        if conteo_tipologia.get(codigo, 0) > 0
+    ]
+
+    modalidades_presentes = [
+        codigo
+        for codigo, _ in Actividad.MODALIDADES
+        if conteo_modalidad.get(codigo, 0) > 0
+    ]
+
+    programas_ordenados = sorted(
+        conteo_programa.items(),
+        key=lambda item: (-item[1], item[0].lower()),
+    )
+    top_programas = programas_ordenados[:8]
+    resto_programas = programas_ordenados[8:]
+    otros_programas = sum(cantidad for _, cantidad in resto_programas)
+
+    programas_labels = [nombre for nombre, _ in top_programas]
+    programas_values = [cantidad for _, cantidad in top_programas]
+    if otros_programas:
+        programas_labels.append('Otros')
+        programas_values.append(otros_programas)
+
+    return {
+        'tipologias': {
+            'labels': [tipologia_labels[codigo] for codigo in tipologias_presentes],
+            'values': [conteo_tipologia[codigo] for codigo in tipologias_presentes],
+        },
+        'modalidades': {
+            'labels': [modalidad_labels[codigo] for codigo in modalidades_presentes],
+            'values': [conteo_modalidad[codigo] for codigo in modalidades_presentes],
+        },
+        'programas': {
+            'labels': programas_labels,
+            'values': programas_values,
+        },
+        'mensual': {
+            'labels': [meses_labels[codigo] for codigo in meses_orden],
+            'actividades': [mensual_actividades[codigo] for codigo in meses_orden],
+            'participantes': [mensual_participantes[codigo] for codigo in meses_orden],
+            'horas': [mensual_horas[codigo] for codigo in meses_orden],
+        },
+    }
+
+
 def _parse_anio(valor):
     try:
         return int(valor)
@@ -39,26 +113,22 @@ def _filtrar_actividades(tipo_reporte, filtros):
     fecha_inicio = filtros.get('fecha_inicio', '').strip()
     fecha_fin = filtros.get('fecha_fin', '').strip()
 
-    if tipo_reporte == 'tipologia' and tipologia:
+    if tipologia:
         actividades = actividades.filter(tipologia=tipologia)
 
-    if tipo_reporte == 'programa' and programa:
+    if programa:
         actividades = actividades.filter(programa=programa)
 
-    if tipo_reporte == 'mensual':
-        if mes:
-            actividades = actividades.filter(mes=mes)
-        if anio:
-            actividades = actividades.filter(fecha_inicio__year=anio)
+    if mes:
+        actividades = actividades.filter(mes=mes)
 
-    if tipo_reporte == 'anual' and anio:
+    if anio:
         actividades = actividades.filter(fecha_inicio__year=anio)
 
-    if tipo_reporte == 'personalizado':
-        if fecha_inicio:
-            actividades = actividades.filter(fecha_inicio__gte=fecha_inicio)
-        if fecha_fin:
-            actividades = actividades.filter(fecha_fin__lte=fecha_fin)
+    if fecha_inicio:
+        actividades = actividades.filter(fecha_inicio__gte=fecha_inicio)
+    if fecha_fin:
+        actividades = actividades.filter(fecha_fin__lte=fecha_fin)
 
     return actividades
 
@@ -138,13 +208,14 @@ def reportes(request):
         tipo_reporte = 'general'
 
     filtros = _construir_filtros(request)
-    mostrar_reporte = request.GET.get('accion') == 'ver'
+    mostrar_reporte = True
 
-    actividades = _filtrar_actividades(tipo_reporte, filtros) if mostrar_reporte else Actividad.objects.none()
+    actividades = _filtrar_actividades(tipo_reporte, filtros)
     totales = actividades.aggregate(
         total_participantes=Sum('numero_participantes'),
         total_horas=Sum('horas_dedicadas'),
     )
+    datos_graficas = _construir_datos_graficas(actividades)
 
     programas_disponibles = Programa.objects.order_by('nombre').values_list('nombre', flat=True)
 
@@ -167,6 +238,7 @@ def reportes(request):
         'total_participantes': totales['total_participantes'] or 0,
         'total_horas': totales['total_horas'] or 0,
         'querystring_excel': _querystring_excel(tipo_reporte, filtros),
+        'datos_graficas': datos_graficas,
     }
     return render(request, 'reportes/reportes.html', contexto)
 

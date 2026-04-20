@@ -1,0 +1,273 @@
+{% extends 'administracion/base_admin.html' %}
+
+{% block title %}Gestor de actividades - Usuarios{% endblock %}
+
+{% block content %}
+  <style>
+    .usuarios-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+    .usuarios-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .usuarios-title {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .usuarios-subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat-card {
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      margin: 10px 0 0;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 800;
+    }
+    .stat-value.accent {
+      color: var(--primary);
+    }
+    .message-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .message-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      font-size: 14px;
+    }
+    .message-item.error {
+      border-color: #fecaca;
+      color: var(--danger);
+      background: #fef2f2;
+    }
+    .usuarios-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      overflow: hidden;
+    }
+    .usuarios-card-title {
+      margin: 2px 2px 12px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .usuarios-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .usuarios-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: var(--surface);
+    }
+    .usuarios-table th,
+    .usuarios-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+    }
+    .usuarios-table th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--surface-2);
+    }
+    .usuarios-table tbody tr:hover {
+      background: color-mix(in srgb, var(--primary-soft) 20%, transparent);
+    }
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      background: var(--avatar-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      flex: 0 0 34px;
+    }
+    .user-name {
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .user-username {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .role-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .role-pill.admin {
+      background: var(--primary-soft);
+      border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+      color: var(--primary);
+    }
+    .usuarios-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px 16px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+    }
+    @media (max-width: 980px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .usuarios-title {
+        font-size: 26px;
+      }
+    }
+  </style>
+
+  <div class="usuarios-page">
+    <div class="usuarios-header">
+      <div>
+        <h1 class="usuarios-title">Gestión de Usuarios</h1>
+        <p class="usuarios-subtitle">Administra los usuarios del sistema</p>
+      </div>
+      <a class="btn" href="{% url 'admin_usuarios_nuevo' %}">Nuevo Usuario</a>
+    </div>
+
+    <section class="stats-grid" aria-label="Resumen de usuarios">
+      <article class="stat-card">
+        <p class="stat-label">Total Usuarios</p>
+        <p class="stat-value">{{ total_usuarios }}</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-label">Administradores</p>
+        <p class="stat-value accent">{{ total_administradores }}</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-label">Docentes</p>
+        <p class="stat-value accent">{{ total_docentes }}</p>
+      </article>
+    </section>
+
+    <section class="usuarios-card" aria-label="Listado de usuarios">
+      <h2 class="usuarios-card-title">Lista de Usuarios</h2>
+
+      {% if messages %}
+        <div class="message-list">
+          {% for message in messages %}
+            <div class="message-item {% if 'error' in message.tags %}error{% endif %}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if usuarios %}
+        <div class="usuarios-table-wrap">
+          <table class="usuarios-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th style="width: 120px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for usuario in usuarios %}
+                <tr>
+                  <td>
+                    <div class="user-cell">
+                      <span class="user-avatar">
+                        {% if usuario.primer_nombre %}
+                          {{ usuario.primer_nombre|slice:':1'|upper }}
+                        {% elif usuario.user.username %}
+                          {{ usuario.user.username|slice:':1'|upper }}
+                        {% else %}
+                          U
+                        {% endif %}
+                      </span>
+                      <div>
+                        <div class="user-name">
+                          {% if usuario.primer_nombre or usuario.primer_apellido %}
+                            {{ usuario.primer_nombre }} {{ usuario.primer_apellido }}
+                          {% else %}
+                            {{ usuario.user.username }}
+                          {% endif %}
+                        </div>
+                        <div class="user-username">{{ usuario.user.username }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ usuario.user.email|default:usuario.correo }}</td>
+                  <td>
+                    {% if usuario.rol %}
+                      <span class="role-pill {% if usuario.rol.codigo == 'administrador' %}admin{% endif %}">{{ usuario.rol.nombre }}</span>
+                    {% else %}
+                      <span class="role-pill">Sin rol</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a class="btn" href="{% url 'admin_usuarios_editar' usuario.id %}">Editar</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="usuarios-empty">No hay usuarios registrados.</div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
+

@@ -1,0 +1,48 @@
+{% extends 'administracion/base_admin.html' %}
+
+{% block title %}Admin - Programas{% endblock %}
+
+{% block content %}
+  <div class="header">
+    <div>
+      <h1 class="title">Programas</h1>
+      <p class="subtitle">Registrar y consultar programas académicos</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <form method="post">
+      {% csrf_token %}
+      <div class="field"><label>Facultad</label>{{ form_programa_admin.facultad }}{{ form_programa_admin.facultad.errors }}</div>
+      <div class="field" style="margin-top:10px;"><label>Código</label>{{ form_programa_admin.codigo }}{{ form_programa_admin.codigo.errors }}</div>
+      <div class="field" style="margin-top:10px;"><label>Nombre</label>{{ form_programa_admin.nombre }}{{ form_programa_admin.nombre.errors }}</div>
+      <div class="field" style="margin-top:10px;"><label>Descripción</label>{{ form_programa_admin.descripcion }}{{ form_programa_admin.descripcion.errors }}</div>
+      <div style="margin-top:12px;"><button class="btn" type="submit">Guardar Programa</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Facultad</th>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for programa in programas_registrados %}
+        <tr>
+          <td>{{ programa.facultad.nombre }}</td>
+          <td>{{ programa.codigo }}</td>
+          <td>{{ programa.nombre }}</td>
+          <td>{{ programa.descripcion|default:'-' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No hay programas registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

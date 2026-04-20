@@ -9,8 +9,20 @@ from core.usuarios.models import Usuario
 from .forms import FormCrearUsuario, FormEditarUsuario
 
 
+def _usuario_es_admin(request):
+	if getattr(request.user, 'is_superuser', False):
+		return True
+
+	perfil = Usuario.objects.select_related('rol').filter(user_id=request.user.id).first()
+	return bool(perfil and perfil.rol and perfil.rol.codigo == 'administrador')
+
+
 @login_required
 def lista_usuarios_view(request):
+	if not _usuario_es_admin(request):
+		messages.error(request, 'No tienes permisos para acceder al módulo de usuarios.')
+		return redirect('index')
+
 	User = get_user_model()
 	usuarios_auth = User.objects.only('id', 'username', 'email').order_by('username')
 	for usuario_auth in usuarios_auth:
@@ -30,6 +42,7 @@ def lista_usuarios_view(request):
 		'total_usuarios': total_usuarios,
 		'total_administradores': total_administradores,
 		'total_docentes': total_docentes,
+		'active_admin': 'usuarios',
 	}
 
 	return render(request, 'gestion_usuarios/usuarios.html', contexto)
@@ -37,31 +50,41 @@ def lista_usuarios_view(request):
 
 @login_required
 def nuevo_usuario_view(request):
+	if not _usuario_es_admin(request):
+		messages.error(request, 'No tienes permisos para crear usuarios.')
+		return redirect('index')
+
 	if request.method == 'POST':
 		form = FormCrearUsuario(request.POST)
 		if form.is_valid():
 			with transaction.atomic():
 				form.save()
 			messages.success(request, 'Usuario creado correctamente.')
-			return redirect('usuarios')
+			return redirect('admin_usuarios')
 		messages.error(request, 'Revisa los campos. No se pudo crear el usuario.')
 	else:
 		form = FormCrearUsuario()
 
+	contexto = {
+		'titulo': 'Nuevo Usuario',
+		'boton': 'Crear Usuario',
+		'form': form,
+		'active_admin': 'usuarios',
+	}
+
 	return render(
 		request,
 		'gestion_usuarios/usuario_form.html',
-		{
-			'titulo': 'Nuevo Usuario',
-			'boton': 'Crear Usuario',
-			'form': form,
-			'active': 'usuarios',
-		},
+		contexto,
 	)
 
 
 @login_required
 def editar_usuario_view(request, usuario_id: int):
+	if not _usuario_es_admin(request):
+		messages.error(request, 'No tienes permisos para editar usuarios.')
+		return redirect('index')
+
 	usuario = get_object_or_404(Usuario.objects.select_related('user', 'rol'), pk=usuario_id)
 
 	if request.method == 'POST':
@@ -70,18 +93,20 @@ def editar_usuario_view(request, usuario_id: int):
 			with transaction.atomic():
 				form.save()
 			messages.success(request, 'Usuario actualizado correctamente.')
-			return redirect('usuarios')
+			return redirect('admin_usuarios')
 		messages.error(request, 'Revisa los campos. No se pudo actualizar el usuario.')
 	else:
 		form = FormEditarUsuario(usuario=usuario)
 
+	contexto = {
+		'titulo': 'Editar Usuario',
+		'boton': 'Guardar Cambios',
+		'form': form,
+		'active_admin': 'usuarios',
+	}
+
 	return render(
 		request,
 		'gestion_usuarios/usuario_form.html',
-		{
-			'titulo': 'Editar Usuario',
-			'boton': 'Guardar Cambios',
-			'form': form,
-			'active': 'usuarios',
-		},
+		contexto,
 	)

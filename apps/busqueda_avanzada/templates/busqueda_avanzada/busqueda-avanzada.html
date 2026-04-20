@@ -1,11 +1,58 @@
 {% extends 'app_base.html' %}
 
-{% block title %}UNITECNAR - Búsqueda Avanzada{% endblock %}
+{% block title %}Gestor de actividades - Búsqueda Avanzada{% endblock %}
 {% block sidebar %}{% include 'partials/sidebar.html' with active='busqueda_avanzada' %}{% endblock %}
 
 {% block content %}
   <h1 class="page-title">Búsqueda Avanzada</h1>
   <p class="page-subtitle">Encuentra actividades usando filtros avanzados</p>
+
+  <style>
+    .ba-results-count {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .ba-results-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+      background: var(--surface-2);
+    }
+
+    .ba-results-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+      background: var(--surface);
+    }
+
+    .ba-results-table thead th {
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .ba-results-table th,
+    .ba-results-table td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .ba-results-table tbody tr:hover {
+      background: var(--surface-2);
+    }
+
+    .ba-results-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+  </style>
 
   <div class="card" style="max-width: 980px; margin: 0 auto;">
     <h2 class="section-title" style="margin-top:0">Filtros de Búsqueda</h2>
@@ -61,9 +108,9 @@
       {% if not busqueda_realizada %}
       <div class="placeholder">Utiliza los filtros para buscar actividades.</div>
       {% elif actividades %}
-      <div style="margin-bottom: 12px;">Resultados encontrados: {{ total_resultados }}</div>
-      <div class="table-responsive">
-        <table class="table align-middle">
+      <div class="ba-results-count">Resultados encontrados: {{ total_resultados }}</div>
+      <div class="ba-results-wrap">
+        <table class="ba-results-table">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -96,3 +143,4 @@
     </div>
   </div>
 {% endblock %}
+

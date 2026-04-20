@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core.importante',
+    'core.administracion',
     'core.autenticacion',
     'apps.inicio',
     'apps.actividades',
@@ -34,7 +35,7 @@ INSTALLED_APPS = [
     'apps.historial',
     'apps.generador_ia',
     'apps.configuracion',
-    'apps.gestion_usuarios',
+    'core.administracion.gestion_usuarios',
     'core.usuarios',
 ]
 

@@ -1,0 +1,124 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Administración{% endblock %}</title>
+  <style>
+    :root{
+      color-scheme: light;
+      --bg:#f4f6ff;
+      --surface:#ffffff;
+      --surface-2:#fbfcff;
+      --border:#e4e7f5;
+      --text:#0b1023;
+      --muted:#5a6a93;
+      --primary:#7c3aed;
+      --primary-2:#6d28d9;
+      --primary-soft:#ede9fe;
+      --avatar-bg:#e5e7eb;
+      --btn-secondary-text:#0f172a;
+      --placeholder-bg:#fff;
+      --label:#475569;
+      --danger:#b42318;
+      --radius:14px;
+    }
+    body.theme-dark{
+      color-scheme: dark;
+      --bg:#0b1023;
+      --surface:#0f172a;
+      --surface-2:#111c33;
+      --border:#23304f;
+      --text:#e6eaf5;
+      --muted:#aab3d0;
+      --primary:#7c3aed;
+      --primary-2:#6d28d9;
+      --primary-soft:#2a164e;
+      --avatar-bg:#22304e;
+      --btn-secondary-text:#e6eaf5;
+      --placeholder-bg:#0f172a;
+      --label:#c6cde3;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--text)}
+    .layout{min-height:100vh; display:flex}
+    .sidebar{width:260px; border-right:1px solid var(--border); background:var(--surface); padding:16px; display:flex; flex-direction:column}
+    .brand{font-size:18px; font-weight:800; margin-bottom:8px}
+    .muted{font-size:12px; color:var(--muted); margin-bottom:14px}
+    .sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px solid var(--border)}
+    .theme-row{display:flex; justify-content:flex-start}
+    .theme-btn{height:38px; width:38px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); cursor:pointer; padding:0; display:inline-flex; align-items:center; justify-content:center}
+    .theme-icon{width:16px; height:16px; flex:0 0 16px}
+    .nav{display:flex; flex-direction:column; gap:8px}
+    .nav a, .logout-btn{display:block; width:100%; border:0; text-align:left; text-decoration:none; color:var(--text); padding:10px 12px; border-radius:10px; background:transparent; font:inherit; cursor:pointer}
+    .nav a:hover, .logout-btn:hover{background:var(--surface-2)}
+    .nav a.active{background:var(--primary); color:#fff}
+    .content{flex:1; padding:22px}
+    .header{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px}
+    .title{margin:0; font-size:28px; font-weight:800}
+    .subtitle{margin:4px 0 0; color:var(--muted)}
+    .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px}
+    .field label{display:block; font-size:12px; margin:0 0 6px; color:var(--muted); font-weight:700}
+    .input, .select{width:100%; height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; background:var(--surface)}
+    .btn{height:40px; border:0; border-radius:10px; padding:0 12px; font-weight:700; cursor:pointer; background:var(--primary); color:#fff}
+    .btn:hover{background:var(--primary-2)}
+    .messages{display:flex; flex-direction:column; gap:8px; margin-bottom:12px}
+    .msg{padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#f8fafc}
+    .msg.error{background:#fef3f2; border-color:#fecaca; color:var(--danger)}
+    table{width:100%; border-collapse:collapse}
+    th, td{padding:10px; border-bottom:1px solid var(--border); text-align:left}
+    th{font-size:12px; color:var(--muted)}
+    @media (max-width: 920px){
+      .layout{flex-direction:column}
+      .sidebar{width:100%; border-right:none; border-bottom:1px solid var(--border)}
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">Administración</div>
+      <div class="muted">Módulo aislado del sistema principal</div>
+      <nav class="nav" aria-label="Navegación de administración">
+        <a href="{% url 'admin_usuarios' %}" {% if active_admin == 'usuarios' %}class="active"{% endif %}>Usuarios</a>
+        <a href="{% url 'admin_facultades' %}" {% if active_admin == 'facultades' %}class="active"{% endif %}>Facultades</a>
+        <a href="{% url 'admin_programas' %}" {% if active_admin == 'programas' %}class="active"{% endif %}>Programas</a>
+        <a href="{% url 'index' %}" style="display:flex; align-items:center; gap:8px;">
+          <svg class="theme-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Volver</span>
+        </a>
+        <form method="post" action="{% url 'autenticacion:logout' %}">
+          {% csrf_token %}
+          <button class="logout-btn" type="submit">Cerrar sesión</button>
+        </form>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="theme-row">
+          <button class="theme-btn" type="button" data-theme-toggle aria-label="Cambiar tema" title="Cambiar tema">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+        <div class="msg {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{% static 'app.js' %}?v=20260304"></script>
+</body>
+</html>
