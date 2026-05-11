@@ -1,22 +1,33 @@
 :root{
   color-scheme: light;
-  --bg:#f4f6ff;
+  --bg:#f3f7f9;
   --surface:#ffffff;
   --surface-2:#fbfcff;
   --border:#e4e7f5;
   --text:#0b1023;
   --muted:#5a6a93;
-  --primary:#7c3aed;
-  --primary-2:#6d28d9;
-  --primary-soft:#ede9fe;
+  /* Paleta institucional (UNITECNAR) */
+  --primary:#034464;          /* azul */
+  --primary-2:#02364f;        /* azul más oscuro */
+  --primary-soft:#e6f0f5;     /* azul suave */
+  --accent:#e06e0e;           /* naranja */
+  --accent-2:#c95f0c;         /* naranja más oscuro */
+  --accent-soft:#fff1e6;      /* naranja suave */
+  --neutral:#0ea5a4;          /* aguamarina / teal */
+  --neutral-soft:#e6fffe;
+  /* Complementarios */
+  --primary-complement:#fcbb9b;
+  --accent-complement:#1f91f1;
+  --neutral-complement:#f15a5b;
+
   --success-soft:#ecf0ff;
-  --warning-soft:#edf1ff;
-  --purple-soft:#f1ecff;
+  --warning-soft:var(--accent-soft);
+  --purple-soft:var(--primary-soft);
   --nav-text:#1f2937;
   --card-title:#334155;
   --avatar-bg:#e5e7eb;
   --btn-secondary-text:#0f172a;
-  --primary-border-soft:#ddd6fe;
+  --primary-border-soft:#b9d7e4;
   --placeholder-border:#cbd5e1;
   --placeholder-text:#94a3b8;
   --placeholder-bg:#fff;
@@ -32,15 +43,18 @@ body.theme-dark{
   --border:#23304f;
   --text:#e6eaf5;
   --muted:#aab3d0;
-  --primary-soft:#2a164e;
+  /* Mantener la misma paleta, ajustando los "soft" para contraste */
+  --primary-soft:rgba(3, 68, 100, 0.22);
+  --accent-soft:rgba(224, 110, 14, 0.18);
+  --neutral-soft:rgba(14, 165, 164, 0.18);
   --success-soft:#102a2a;
-  --warning-soft:#2a2410;
-  --purple-soft:#1e1633;
+  --warning-soft:var(--accent-soft);
+  --purple-soft:var(--primary-soft);
   --nav-text:#e6eaf5;
   --card-title:#e6eaf5;
   --avatar-bg:#22304e;
   --btn-secondary-text:#e6eaf5;
-  --primary-border-soft:#3b2a6a;
+  --primary-border-soft:rgba(3, 68, 100, 0.38);
   --placeholder-border:#3b4b6f;
   --placeholder-text:#aab3d0;
   --placeholder-bg:#0f172a;

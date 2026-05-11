@@ -34,7 +34,6 @@ urlpatterns = [
     path('', include(('core.autenticacion.urls', 'autenticacion'), namespace='autenticacion')),
     path('administracion/', include('core.administracion.urls')),
     path('configuracion/', include('apps.configuracion.urls')),
-    path('configuracion.html', include('apps.configuracion.urls')),
     path('', include('apps.actividades.urls')),
     path('', include('apps.busqueda_avanzada.urls')),
     path('', include('apps.reportes.urls')),

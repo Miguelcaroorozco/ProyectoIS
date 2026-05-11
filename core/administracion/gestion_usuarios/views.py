@@ -24,11 +24,14 @@ def lista_usuarios_view(request):
 		return redirect('index')
 
 	User = get_user_model()
-	usuarios_auth = User.objects.only('id', 'username', 'email').order_by('username')
-	for usuario_auth in usuarios_auth:
-		Usuario.objects.get_or_create(
-			user_id=usuario_auth.id,
-			defaults={'correo': usuario_auth.email or ''},
+	faltantes = list(
+		User.objects.exclude(id__in=Usuario.objects.values_list('user_id', flat=True))
+		.only('id', 'email')
+	)
+	if faltantes:
+		Usuario.objects.bulk_create(
+			[Usuario(user_id=u.id, correo=u.email or '') for u in faltantes],
+			ignore_conflicts=True,
 		)
 
 	usuarios = Usuario.objects.select_related('user', 'rol').order_by('user__username')

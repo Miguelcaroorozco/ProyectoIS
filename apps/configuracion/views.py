@@ -82,7 +82,6 @@ def configuracion_view(request):
 		'form_preferencias': form_preferencias,
 		'form_correo': form_correo,
 		'form_contrasena': form_contrasena,
-		'version': 'v1.0.0',
 	}
 
 	return render(request, 'configuracion/configuracion.html', contexto)

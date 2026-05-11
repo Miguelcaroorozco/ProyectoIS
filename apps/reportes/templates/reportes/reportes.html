@@ -256,12 +256,29 @@
           const isDark = document.body.classList.contains('theme-dark');
           return {
             isDark,
-            primary: getThemeVar('--primary', '#7c3aed'),
+            primary: getThemeVar('--primary', '#034464'),
+            accent: getThemeVar('--accent', '#e06e0e'),
+            neutral: getThemeVar('--neutral', '#0ea5a4'),
+            accentComplement: getThemeVar('--accent-complement', '#1f91f1'),
             text: getThemeVar('--text', isDark ? '#e6eaf5' : '#0b1023'),
             muted: getThemeVar('--muted', isDark ? '#aab3d0' : '#5a6a93'),
             border: getThemeVar('--border', isDark ? '#23304f' : '#dbe2f0'),
             grid: isDark ? 'rgba(170, 179, 208, 0.28)' : 'rgba(90, 106, 147, 0.24)',
           };
+        };
+
+        const hexToRgba = (hex, alpha) => {
+          const raw = String(hex || '').trim().replace('#', '');
+          const normalized = raw.length === 3
+            ? raw.split('').map((c) => c + c).join('')
+            : raw;
+          if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+            return `rgba(3, 68, 100, ${alpha})`;
+          }
+          const r = parseInt(normalized.slice(0, 2), 16);
+          const g = parseInt(normalized.slice(2, 4), 16);
+          const b = parseInt(normalized.slice(4, 6), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         };
 
         const destroyCharts = () => {
@@ -290,7 +307,7 @@
                 label: 'Actividades',
                 data: tipologias.values,
                 borderRadius: 8,
-                backgroundColor: 'rgba(124, 58, 237, 0.75)',
+                backgroundColor: hexToRgba(colors.primary, 0.75),
                 borderColor: colors.primary,
                 borderWidth: 1,
               }],
@@ -354,10 +371,10 @@
               datasets: [{
                 data: modalidades.values,
                 backgroundColor: [
-                  'rgba(124, 58, 237, 0.85)',
-                  'rgba(37, 99, 235, 0.85)',
-                  'rgba(16, 185, 129, 0.85)',
-                  'rgba(245, 158, 11, 0.85)',
+                  hexToRgba(colors.primary, 0.85),
+                  hexToRgba(colors.accent, 0.85),
+                  hexToRgba(colors.neutral, 0.85),
+                  hexToRgba(colors.accentComplement, 0.85),
                 ],
                 borderColor: colors.border,
                 borderWidth: 1,
@@ -394,8 +411,8 @@
                 label: 'Actividades',
                 data: programas.values,
                 borderRadius: 8,
-                backgroundColor: 'rgba(37, 99, 235, 0.75)',
-                borderColor: 'rgba(37, 99, 235, 1)',
+                backgroundColor: hexToRgba(colors.accentComplement, 0.75),
+                borderColor: colors.accentComplement,
                 borderWidth: 1,
               }],
             },
@@ -426,23 +443,23 @@
                   label: 'Actividades',
                   data: mensual.actividades,
                   borderColor: colors.primary,
-                  backgroundColor: 'rgba(124, 58, 237, 0.15)',
+                  backgroundColor: hexToRgba(colors.primary, 0.15),
                   tension: 0.35,
                   fill: true,
                 },
                 {
                   label: 'Participantes',
                   data: mensual.participantes,
-                  borderColor: 'rgba(16, 185, 129, 1)',
-                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  borderColor: colors.accent,
+                  backgroundColor: hexToRgba(colors.accent, 0.15),
                   tension: 0.35,
                   fill: true,
                 },
                 {
                   label: 'Horas',
                   data: mensual.horas,
-                  borderColor: 'rgba(245, 158, 11, 1)',
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  borderColor: colors.neutral,
+                  backgroundColor: hexToRgba(colors.neutral, 0.15),
                   tension: 0.35,
                   fill: true,
                 },

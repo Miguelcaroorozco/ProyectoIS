@@ -138,7 +138,7 @@ def _parse_anio(valor):
         return None
 
 
-def _filtrar_actividades(tipo_reporte, filtros):
+def _filtrar_actividades(filtros):
     actividades = Actividad.objects.all()
 
     tipologia = filtros.get('tipologia')
@@ -264,7 +264,7 @@ def reportes(request):
     if tipo_reporte not in TIPOS_REPORTE:
         tipo_reporte = 'general'
 
-    actividades_qs = _filtrar_actividades(tipo_reporte, filtros)
+    actividades_qs = _filtrar_actividades(filtros)
     totales = actividades_qs.aggregate(
         total_participantes=Sum('numero_participantes'),
         total_horas=Sum('horas_dedicadas'),
@@ -309,7 +309,7 @@ def descargar_reporte_excel(request):
         tipo_reporte = 'general'
 
     filtros = _construir_filtros(request)
-    actividades = _filtrar_actividades(tipo_reporte, filtros)
+    actividades = _filtrar_actividades(filtros)
 
     libro = _crear_libro_excel(tipo_reporte, actividades)
     buffer = BytesIO()
