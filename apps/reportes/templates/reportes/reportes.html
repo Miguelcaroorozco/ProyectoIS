@@ -135,40 +135,61 @@
       </article>
     </div>
 
-    <div style="overflow:auto;">
-      <table style="width:100%; border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Nombre</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Programa</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Tipología</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Modalidad</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Periodo</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Fechas</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Participantes</th>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Horas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for actividad in actividades %}
-          <tr>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.nombre }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.programa }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.get_tipologia_display }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.get_modalidad_display }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.periodo }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.numero_participantes }}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.horas_dedicadas }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div id="reporte-table-wrap">
+      {% include 'reportes/_tabla.html' %}
     </div>
     {% else %}
     <div class="placeholder">No hay actividades para los filtros seleccionados.</div>
     {% endif %}
   </div>
+
+  <script>
+    (function () {
+      const wrap = document.getElementById('reporte-table-wrap');
+      if (!wrap) return;
+
+      const addPartialParam = (url) => {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.set('partial', 'tabla');
+        return u.toString();
+      };
+
+      const cleanUrl = (url) => {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.delete('partial');
+        return u.pathname + u.search + u.hash;
+      };
+
+      async function load(url, { push } = { push: true }) {
+        const resp = await fetch(addPartialParam(url), {
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (!resp.ok) {
+          window.location.href = cleanUrl(url);
+          return;
+        }
+        const html = await resp.text();
+        wrap.innerHTML = html;
+        if (push) window.history.pushState({ url: cleanUrl(url) }, '', cleanUrl(url));
+      }
+
+      wrap.addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+        if (!wrap.contains(a)) return;
+        if (!a.getAttribute('href')) return;
+        if (a.getAttribute('href').startsWith('http')) return;
+
+        e.preventDefault();
+        load(a.href);
+      });
+
+      window.addEventListener('popstate', (e) => {
+        const url = (e.state && e.state.url) ? e.state.url : window.location.href;
+        if (url) load(url, { push: false });
+      });
+    })();
+  </script>
 
   <div class="card" style="max-width: 1100px; margin: 16px auto 0;">
     <h2 class="section-title" style="margin-top:0">Información</h2>

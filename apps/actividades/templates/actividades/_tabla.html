@@ -1,0 +1,52 @@
+{% comment %}Partial: tabla + paginación (AJAX). Espera: actividades, page_obj, is_paginated, q{% endcomment %}
+
+<div class="table-responsive" style="margin-top: 12px;">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Programa</th>
+        <th>Tipología</th>
+        <th>Modalidad</th>
+        <th>Periodo</th>
+        <th>Fechas</th>
+        <th>Participantes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for actividad in actividades %}
+      <tr>
+        <td>{{ actividad.nombre }}</td>
+        <td>{{ actividad.programa }}</td>
+        <td>{{ actividad.get_tipologia_display }}</td>
+        <td>{{ actividad.get_modalidad_display }}</td>
+        <td>{{ actividad.periodo }}</td>
+        <td>{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
+        <td>{{ actividad.numero_participantes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="margin-top: 12px;">
+    <div style="color: var(--muted); font-size: 13px;">
+      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </div>
+
+    <div class="d-flex gap-2">
+      {% if page_obj.has_previous %}
+        <a class="btn btn-secondary" href="?{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}#actividades-lista">Anterior</a>
+      {% else %}
+        <span class="btn btn-secondary" style="opacity:.55; pointer-events:none;">Anterior</span>
+      {% endif %}
+
+      {% if page_obj.has_next %}
+        <a class="btn btn-secondary" href="?{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}#actividades-lista">Siguiente</a>
+      {% else %}
+        <span class="btn btn-secondary" style="opacity:.55; pointer-events:none;">Siguiente</span>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

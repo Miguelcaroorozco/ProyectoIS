@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -24,13 +25,25 @@ def actividades(request):
             | Q(modalidad__icontains=consulta)
         )
 
+    actividades_qs = actividades_qs.order_by('-fecha_inicio', '-id')
+
+    paginator = Paginator(actividades_qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'actividades': page_obj.object_list,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'q': consulta,
+    }
+
+    if (request.GET.get('partial') or '').strip().lower() == 'tabla':
+        return render(request, 'actividades/_tabla.html', context)
+
     return render(
         request,
         'actividades/actividades.html',
-        {
-            'actividades': actividades_qs,
-            'q': consulta,
-        },
+        context,
     )
 
 

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -263,12 +264,19 @@ def reportes(request):
     if tipo_reporte not in TIPOS_REPORTE:
         tipo_reporte = 'general'
 
-    actividades = _filtrar_actividades(tipo_reporte, filtros)
-    totales = actividades.aggregate(
+    actividades_qs = _filtrar_actividades(tipo_reporte, filtros)
+    totales = actividades_qs.aggregate(
         total_participantes=Sum('numero_participantes'),
         total_horas=Sum('horas_dedicadas'),
     )
-    datos_graficas = _construir_datos_graficas(actividades)
+    datos_graficas = _construir_datos_graficas(actividades_qs)
+
+    paginator = Paginator(actividades_qs.order_by('-fecha_inicio', '-id'), 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    get_without_page = request.GET.copy()
+    get_without_page.pop('page', None)
+    querystring_page = urlencode(get_without_page, doseq=True)
 
     anios_disponibles = sorted(
         {actividad.fecha_inicio.year for actividad in Actividad.objects.only('fecha_inicio')},
@@ -278,13 +286,19 @@ def reportes(request):
     contexto = {
         'form': form,
         'anios_disponibles': anios_disponibles,
-        'actividades': actividades,
-        'total_actividades': actividades.count(),
+        'actividades': page_obj.object_list,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'querystring_page': querystring_page,
+        'total_actividades': actividades_qs.count(),
         'total_participantes': totales['total_participantes'] or 0,
         'total_horas': totales['total_horas'] or 0,
         'querystring_excel': _querystring_excel(tipo_reporte, filtros),
         'datos_graficas': datos_graficas,
     }
+
+    if (request.GET.get('partial') or '').strip().lower() == 'tabla':
+        return render(request, 'reportes/_tabla.html', contexto)
     return render(request, 'reportes/reportes.html', contexto)
 
 

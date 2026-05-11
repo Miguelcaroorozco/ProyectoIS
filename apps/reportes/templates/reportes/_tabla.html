@@ -1,0 +1,54 @@
+{% comment %}Partial: tabla + paginación (AJAX). Espera: actividades, page_obj, is_paginated, querystring_page{% endcomment %}
+
+<div id="reporte-tabla" style="overflow:auto;">
+  <table style="width:100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Nombre</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Programa</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Tipología</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Modalidad</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Periodo</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Fechas</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Participantes</th>
+        <th style="text-align:left; padding:10px; border-bottom:1px solid var(--stroke);">Horas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for actividad in actividades %}
+      <tr>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.nombre }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.programa }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.get_tipologia_display }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.get_modalidad_display }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.periodo }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.numero_participantes }}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--stroke);">{{ actividad.horas_dedicadas }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="margin-top: 12px;">
+    <div style="color: var(--muted); font-size: 13px;">
+      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </div>
+
+    <div class="d-flex gap-2">
+      {% if page_obj.has_previous %}
+        <a class="btn btn-secondary" href="?{% if querystring_page %}{{ querystring_page }}&{% endif %}page={{ page_obj.previous_page_number }}#reporte-tabla">Anterior</a>
+      {% else %}
+        <span class="btn btn-secondary" style="opacity:.55; pointer-events:none;">Anterior</span>
+      {% endif %}
+
+      {% if page_obj.has_next %}
+        <a class="btn btn-secondary" href="?{% if querystring_page %}{{ querystring_page }}&{% endif %}page={{ page_obj.next_page_number }}#reporte-tabla">Siguiente</a>
+      {% else %}
+        <span class="btn btn-secondary" style="opacity:.55; pointer-events:none;">Siguiente</span>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

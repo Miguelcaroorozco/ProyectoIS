@@ -12,7 +12,7 @@
     <a class="btn" href="{% url 'nueva_actividad' %}">+ Nueva Actividad</a>
   </div>
 
-  <div class="card">
+  <div class="card" id="actividades-lista">
     <form class="toolbar" method="get">
       <div style="flex:1;">
         <input class="input" name="q" value="{{ q|default:'' }}" type="search" placeholder="Buscar por nombre, tipología o programa..." aria-label="Buscar" />
@@ -21,34 +21,9 @@
     </form>
 
     {% if actividades %}
-    <div class="table-responsive" style="margin-top: 12px;">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Programa</th>
-            <th>Tipología</th>
-            <th>Modalidad</th>
-            <th>Periodo</th>
-            <th>Fechas</th>
-            <th>Participantes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for actividad in actividades %}
-          <tr>
-            <td>{{ actividad.nombre }}</td>
-            <td>{{ actividad.programa }}</td>
-            <td>{{ actividad.get_tipologia_display }}</td>
-            <td>{{ actividad.get_modalidad_display }}</td>
-            <td>{{ actividad.periodo }}</td>
-            <td>{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
-            <td>{{ actividad.numero_participantes }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+      <div id="actividades-table-wrap">
+        {% include 'actividades/_tabla.html' %}
+      </div>
     {% else %}
     <div class="placeholder">
       {% if q %}
@@ -63,5 +38,53 @@
     </div>
     {% endif %}
   </div>
+
+  <script>
+    (function () {
+      const wrap = document.getElementById('actividades-table-wrap');
+      if (!wrap) return;
+
+      const addPartialParam = (url) => {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.set('partial', 'tabla');
+        return u.toString();
+      };
+
+      const cleanUrl = (url) => {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.delete('partial');
+        return u.pathname + u.search + u.hash;
+      };
+
+      async function load(url, { push } = { push: true }) {
+        const resp = await fetch(addPartialParam(url), {
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (!resp.ok) {
+          window.location.href = cleanUrl(url);
+          return;
+        }
+        const html = await resp.text();
+        wrap.innerHTML = html;
+        if (push) window.history.pushState({ url: cleanUrl(url) }, '', cleanUrl(url));
+      }
+
+      wrap.addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+        if (!wrap.contains(a)) return;
+        if (!a.getAttribute('href')) return;
+        if (a.getAttribute('href').startsWith('http')) return;
+
+        e.preventDefault();
+        load(a.href);
+      });
+
+      window.addEventListener('popstate', (e) => {
+        const url = (e.state && e.state.url) ? e.state.url : window.location.href;
+        if (url) load(url, { push: false });
+      });
+    })();
+  </script>
 {% endblock %}
 
