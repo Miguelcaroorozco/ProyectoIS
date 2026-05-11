@@ -92,10 +92,20 @@ body.sidebar-collapsed .sidebar{
   border-radius:10px;
   background:var(--primary);
   color:#fff;
+  overflow:hidden;
+  flex:0 0 34px;
   display:flex;
   align-items:center;
   justify-content:center;
   font-weight:700;
+}
+
+.brand-mark img{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  object-fit:cover;
+  display:block;
 }
 
 .brand-mark.has-photo{

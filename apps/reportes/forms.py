@@ -1,8 +1,50 @@
 from django import forms
 
 from apps.actividades.models import Actividad
-from core.importante.form_choices import choices_presentes
 from core.usuarios.models import Programa
+
+
+def _choices_distintos_desde_bd(valores, *, empty_value='', empty_label='Todos'):
+    vistos = set()
+    resultado = [(empty_value, empty_label)]
+    for valor in valores:
+        texto = ('' if valor is None else str(valor)).strip()
+        if not texto:
+            continue
+        key = texto.casefold()
+        if key in vistos:
+            continue
+        vistos.add(key)
+        resultado.append((texto, texto))
+    return resultado
+
+
+def _choices_por_choices_base(valores_bd, choices_base, *, empty_value='', empty_label='Todos'):
+    """Devuelve choices en el orden de choices_base, pero solo los presentes en BD.
+
+    Soporta BD con códigos o con etiquetas (ej. 'enero' o 'Enero').
+    El value final será el código del choice (para evitar duplicados).
+    """
+
+    mapping = {}
+    for codigo, etiqueta in choices_base:
+        mapping[str(codigo).casefold()] = codigo
+        mapping[str(etiqueta).casefold()] = codigo
+
+    presentes = set()
+    for valor in valores_bd:
+        texto = ('' if valor is None else str(valor)).strip()
+        if not texto:
+            continue
+        codigo = mapping.get(texto.casefold())
+        if codigo is not None:
+            presentes.add(codigo)
+
+    resultado = [(empty_value, empty_label)]
+    for codigo, etiqueta in choices_base:
+        if codigo in presentes:
+            resultado.append((codigo, etiqueta))
+    return resultado
 
 
 class ReportesFiltroForm(forms.Form):
@@ -51,15 +93,17 @@ class ReportesFiltroForm(forms.Form):
         programas = Programa.objects.order_by('nombre').values_list('nombre', flat=True)
 
         self.fields['tipo'].choices = [(codigo, nombre) for codigo, nombre in tipos_reporte.items()]
-        self.fields['tipologia'].choices = [
-            ('', 'Todas'),
-            *choices_presentes(tipologias_disponibles, Actividad.TIPOLOGIAS),
-        ]
+        # Tipología puede venir de BD con valores libres (por ejemplo cargados vía SQL).
+        self.fields['tipologia'].choices = _choices_distintos_desde_bd(
+            tipologias_disponibles,
+            empty_label='Todas',
+        )
         self.fields['programa'].choices = [
             ('', 'Todos'),
             *[(nombre, nombre) for nombre in programas],
         ]
-        self.fields['mes'].choices = [
-            ('', 'Todos'),
-            *choices_presentes(meses_disponibles, Actividad.MESES),
-        ]
+        self.fields['mes'].choices = _choices_por_choices_base(
+            meses_disponibles,
+            Actividad.MESES,
+            empty_label='Todos',
+        )

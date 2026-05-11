@@ -24,6 +24,29 @@ TIPOS_REPORTE = {
 }
 
 
+
+def _normalizar_por_choices(valor, choices_base):
+    """Normaliza un valor de BD para que coincida con las claves de choices_base.
+
+    Soporta valores ya normalizados (código) y valores guardados como etiqueta
+    (p. ej. 'Enero' en vez de 'enero'), comparando en minúsculas.
+    """
+
+    if valor is None:
+        return None
+
+    texto = str(valor).strip()
+    if not texto:
+        return None
+
+    mapping = {}
+    for codigo, etiqueta in choices_base:
+        mapping[str(codigo).casefold()] = codigo
+        mapping[str(etiqueta).casefold()] = codigo
+
+    return mapping.get(texto.casefold(), texto)
+
+
 def _construir_datos_graficas(actividades):
     tipologia_labels = dict(Actividad.TIPOLOGIAS)
     modalidad_labels = dict(Actividad.MODALIDADES)
@@ -39,20 +62,30 @@ def _construir_datos_graficas(actividades):
     mensual_horas = {mes: 0 for mes in meses_orden}
 
     for actividad in actividades:
-        conteo_tipologia[actividad.tipologia] += 1
-        conteo_modalidad[actividad.modalidad] += 1
+        tipologia_valor = (actividad.tipologia or '').strip()
+        conteo_tipologia[tipologia_valor] += 1
+
+        modalidad_codigo = _normalizar_por_choices(actividad.modalidad, Actividad.MODALIDADES)
+        conteo_modalidad[modalidad_codigo] += 1
+
         conteo_programa[actividad.programa] += 1
 
-        mes_codigo = actividad.mes if actividad.mes in mensual_actividades else None
+        mes_codigo = _normalizar_por_choices(actividad.mes, Actividad.MESES)
+        mes_codigo = mes_codigo if mes_codigo in mensual_actividades else None
         if mes_codigo:
             mensual_actividades[mes_codigo] += 1
             mensual_participantes[mes_codigo] += actividad.numero_participantes or 0
             mensual_horas[mes_codigo] += actividad.horas_dedicadas or 0
 
+    # Tipología: no asumimos que coincida con choices del modelo,
+    # porque puede venir cargada desde SQL con otros valores (ej. 'Académica').
     tipologias_presentes = [
-        codigo
-        for codigo, _ in Actividad.TIPOLOGIAS
-        if conteo_tipologia.get(codigo, 0) > 0
+        nombre
+        for nombre, cantidad in sorted(
+            conteo_tipologia.items(),
+            key=lambda item: (-item[1], str(item[0]).casefold()),
+        )
+        if cantidad > 0 and str(nombre).strip()
     ]
 
     modalidades_presentes = [
@@ -77,8 +110,8 @@ def _construir_datos_graficas(actividades):
 
     return {
         'tipologias': {
-            'labels': [tipologia_labels[codigo] for codigo in tipologias_presentes],
-            'values': [conteo_tipologia[codigo] for codigo in tipologias_presentes],
+            'labels': [tipologia_labels.get(nombre, nombre) for nombre in tipologias_presentes],
+            'values': [conteo_tipologia[nombre] for nombre in tipologias_presentes],
         },
         'modalidades': {
             'labels': [modalidad_labels[codigo] for codigo in modalidades_presentes],
@@ -131,13 +164,13 @@ def _filtrar_actividades(tipo_reporte, filtros):
         fecha_fin = fecha_fin.strip() or None
 
     if tipologia:
-        actividades = actividades.filter(tipologia=tipologia)
+        actividades = actividades.filter(tipologia__iexact=tipologia)
 
     if programa:
-        actividades = actividades.filter(programa=programa)
+        actividades = actividades.filter(programa__iexact=programa)
 
     if mes:
-        actividades = actividades.filter(mes=mes)
+        actividades = actividades.filter(mes__iexact=mes)
 
     if anio:
         actividades = actividades.filter(fecha_inicio__year=anio)
