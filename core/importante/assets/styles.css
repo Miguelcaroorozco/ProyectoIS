@@ -87,13 +87,13 @@ body.sidebar-collapsed .sidebar{
   padding:6px 10px 16px;
 }
 .brand-mark{
-  width:34px;
-  height:34px;
-  border-radius:10px;
-  background:var(--primary);
+  width:44px;
+  height:44px;
+  border-radius:16px;
+  background:transparent;
   color:#fff;
   overflow:hidden;
-  flex:0 0 34px;
+  flex:0 0 44px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -101,10 +101,10 @@ body.sidebar-collapsed .sidebar{
 }
 
 .brand-mark img{
-  width:34px;
-  height:34px;
-  border-radius:10px;
-  object-fit:cover;
+  width:44px;
+  height:44px;
+  border-radius:inherit;
+  object-fit:contain;
   display:block;
 }
 
