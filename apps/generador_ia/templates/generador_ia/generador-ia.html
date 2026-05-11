@@ -5,61 +5,400 @@
 
 {% block content %}
   <h1 class="page-title">Generador IA</h1>
-  <p class="page-subtitle">Utiliza inteligencia artificial para generar descripciones y contenido para tus actividades</p>
+  <p class="page-subtitle">Utiliza inteligencia artificial para generar actividades, explicar reportes y consultar información.</p>
 
-  <div class="split" style="max-width: 1180px; margin: 0 auto;">
+  <style>
+    .ia-chat {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+      min-height: 520px;
+    }
+    .ia-messages {
+      border: 1px solid var(--stroke, var(--border));
+      border-radius: 16px;
+      padding: 14px;
+      background: var(--bg);
+      overflow: auto;
+      max-height: 520px;
+    }
+    .ia-msg {
+      display: flex;
+      margin: 10px 0;
+    }
+    .ia-msg-bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke, var(--border));
+      white-space: pre-wrap;
+      color: var(--text);
+      background: var(--surface);
+      line-height: 1.35;
+    }
+    .ia-msg.user {
+      justify-content: flex-end;
+    }
+    .ia-msg.user .ia-msg-bubble {
+      background: var(--success-soft);
+      border-color: var(--border);
+      border-bottom-right-radius: 6px;
+    }
+    .ia-msg.assistant {
+      justify-content: flex-start;
+    }
+    .ia-msg.assistant .ia-msg-bubble {
+      border-bottom-left-radius: 6px;
+    }
+    .ia-input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .ia-compose {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      border: 1px solid var(--stroke, var(--border));
+      border-radius: 999px;
+      background: var(--surface-2, var(--surface));
+      padding: 8px 10px;
+    }
+    #ia-mensaje {
+      border: 0;
+      outline: none;
+      box-shadow: none;
+      background: transparent;
+      border-radius: 999px;
+      min-height: 40px;
+      padding: 8px 10px;
+      resize: none;
+      width: 100%;
+      color: var(--text);
+    }
+    #ia-mensaje::placeholder { color: var(--muted); }
+    #ia-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      flex: 0 0 40px;
+    }
+    .ia-actions-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-start;
+    }
+    .ia-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+    .ia-actions summary {
+      list-style: none;
+    }
+    .ia-actions summary::-webkit-details-marker {
+      display: none;
+    }
+    .ia-actions-toggle {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-radius: 999px;
+      user-select: none;
+    }
+    .ia-actions-toggle svg {
+      transition: transform 180ms ease;
+      transform: rotate(180deg);
+    }
+    .ia-actions[open] .ia-actions-toggle svg {
+      transform: rotate(0deg) translateX(2px);
+    }
+    .ia-actions-menu {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      max-width: 0;
+      opacity: 0;
+      margin-left: -26px;
+      transform: translateX(-52px);
+      pointer-events: none;
+      will-change: max-width, opacity, transform, margin-left;
+      transition:
+        opacity 200ms ease,
+        transform 220ms ease,
+        max-width 0ms linear 220ms,
+        margin-left 0ms linear 220ms;
+    }
+    .ia-actions[open] .ia-actions-menu {
+      max-width: 320px;
+      opacity: 1;
+      transform: translateX(0);
+      margin-left: 0;
+      pointer-events: auto;
+      transition:
+        max-width 220ms ease,
+        margin-left 220ms ease,
+        opacity 200ms ease,
+        transform 220ms ease;
+    }
+    .ia-action-btn {
+      height: 40px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      white-space: nowrap;
+      transition: transform 220ms ease, opacity 180ms ease;
+    }
+    .ia-actions-menu .ia-action-btn {
+      opacity: 0;
+      transform: translateX(-18px);
+      transition-delay: 0ms;
+    }
+    .ia-actions[open] .ia-actions-menu .ia-action-btn {
+      opacity: 1;
+      transform: translateX(0);
+      transition-delay: 80ms;
+    }
+    .ia-action-btn:active { transform: translateX(0) scale(0.97); }
+    .ia-toolbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+    @media (max-width: 920px) {
+      .ia-toolbar { grid-template-columns: 1fr; }
+      .ia-msg-bubble { max-width: 92%; }
+    }
+  </style>
+
+  <div style="max-width: 900px; margin: 0 auto;">
     <section class="card">
-      <h2 class="section-title" style="margin-top:0">Generador de Contenido</h2>
+      <h2 class="section-title" style="margin-top:0">Chat con IA</h2>
 
-      <div class="field">
-        <label>Describe brevemente tu actividad</label>
-        <textarea class="textarea" placeholder="Ejemplo: Taller de robótica para estudiantes de ingeniería con enfoque en Arduino..." aria-label="Descripción breve"></textarea>
-      </div>
+      <div class="ia-chat">
+        <div id="ia-messages" class="ia-messages" aria-label="Mensajes del chat"></div>
 
-      <div class="mt-3">
-        <button class="btn btn-wide" type="button">Generar con IA</button>
-      </div>
+        <div>
+          <div class="mt-3">
+            <div class="ia-compose">
+              <textarea id="ia-mensaje" rows="1" placeholder="Escribe un mensaje…" aria-label="Mensaje para IA"></textarea>
+              <button id="ia-btn" class="btn" type="button" aria-label="Enviar mensaje" title="Enviar">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" style="width:18px; height:18px;">
+                  <path d="M3 11.5L21 3l-8.5 18-2.5-7L3 11.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M21 3L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
 
-      <div class="mt-4 soft-box">
-        <div class="d-flex align-items-center justify-content-between">
-          <div>
-            <div style="font-weight:800;">Resultado Generado</div>
-            <div style="color: var(--muted); font-size: 13px;">El contenido generado aparecerá aquí. Podrás copiarlo y usarlo en tu formulario de actividades.</div>
+            <div class="ia-actions-row">
+              <details class="ia-actions">
+                <summary class="btn btn-secondary ia-actions-toggle" aria-label="Acciones" title="Acciones">
+                  Acciones
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" style="width:16px; height:16px;">
+                    <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </summary>
+
+                <div class="ia-actions-menu" role="group" aria-label="Acciones del chat">
+                  <button id="ia-clear" class="btn btn-secondary ia-action-btn" type="button" aria-label="Limpiar chat" title="Limpiar chat">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" style="width:18px; height:18px;">
+                      <path d="M9 3h6m-8 4h10m-9 0l1 14h6l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Limpiar chat
+                  </button>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>
     </section>
-
-    <aside class="d-grid" style="gap: 16px; align-content:start;">
-      <div class="card">
-        <div style="font-weight:800; margin-bottom:10px;">Sugerencias</div>
-        <ul class="mb-0" style="color: var(--muted);">
-          <li>Describe el tipo de actividad</li>
-          <li>Menciona el público objetivo</li>
-          <li>Indica la duración aproximada</li>
-          <li>Especifica los objetivos principales</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:800; margin-bottom:10px;">Ejemplos de Uso</div>
-
-        <div class="soft-box" style="background: var(--primary-soft); border-color: var(--primary-border-soft); margin-bottom:10px;">
-          <div style="font-weight:800; color: var(--primary);">Descripción</div>
-          <div style="color: var(--muted);">Genera descripciones detalladas</div>
-        </div>
-
-        <div class="soft-box soft-success" style="margin-bottom:10px;">
-          <div style="font-weight:800;">Objetivos</div>
-          <div style="color: var(--muted);">Crea objetivos claros y medibles</div>
-        </div>
-
-        <div class="soft-box soft-purple">
-          <div style="font-weight:800;">Observaciones</div>
-          <div style="color: var(--muted);">Añade notas relevantes</div>
-        </div>
-      </div>
-    </aside>
   </div>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('ia-btn');
+      const mensajeEl = document.getElementById('ia-mensaje');
+      const messagesEl = document.getElementById('ia-messages');
+      const clearEl = document.getElementById('ia-clear');
+
+      const STORAGE_KEY = 'generador_ia_chat_v1';
+
+      /** @type {{role: 'user'|'assistant', content: string}[]} */
+      let chat = [];
+
+      function isValidMessage(m) {
+        return (
+          m &&
+          (m.role === 'user' || m.role === 'assistant') &&
+          typeof m.content === 'string'
+        );
+      }
+
+      function loadChat() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return [];
+          const sanitized = parsed.filter(isValidMessage).map((m) => ({
+            role: m.role,
+            content: String(m.content).slice(0, 8000),
+          }));
+          return sanitized.slice(-50);
+        } catch {
+          return [];
+        }
+      }
+
+      function saveChat(nextChat) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextChat));
+        } catch {
+          // ignore storage errors (private mode, full quota, etc.)
+        }
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+      }
+
+      function escapeText(text) {
+        return String(text ?? '');
+      }
+
+      function normalizeAssistantText(text) {
+        let s = String(text ?? '');
+
+        // Normalize newlines
+        s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+        // Remove markdown fences and bold markers
+        s = s.replace(/```/g, '');
+        s = s.replace(/\*\*/g, '');
+
+        // Normalize bullets at start of line: '* ' or '+ ' -> '- '
+        s = s.replace(/^(\s*)[\*\+]\s+/gm, '$1- ');
+
+        // Remove headings '### '
+        s = s.replace(/^(\s*)#{1,6}\s+/gm, '$1');
+
+        // Remove blockquote markers
+        s = s.replace(/^(\s*)>\s+/gm, '$1');
+
+        // Collapse excessive blank lines
+        s = s.replace(/\n{3,}/g, '\n\n');
+
+        return s.trim();
+      }
+
+      function render() {
+        if (!messagesEl) return;
+        if (!chat.length) {
+          messagesEl.innerHTML = '<div style="color: var(--muted); font-size: 13px;">Inicia el chat escribiendo un mensaje.</div>';
+          return;
+        }
+        messagesEl.innerHTML = chat
+          .map((m) => {
+            const cls = m.role === 'user' ? 'user' : 'assistant';
+            const content = m.role === 'assistant' ? normalizeAssistantText(m.content) : m.content;
+            return (
+              `<div class="ia-msg ${cls}">` +
+              `<div class="ia-msg-bubble">${escapeText(content).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` +
+              `</div>`
+            );
+          })
+          .join('');
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function setBusy(isBusy) {
+        if (!btn) return;
+        btn.disabled = isBusy;
+        btn.title = isBusy ? 'Enviando...' : 'Enviar';
+      }
+
+      async function enviar() {
+        const mensaje = (mensajeEl.value || '').trim();
+        if (!mensaje) return;
+
+        chat = [...chat, { role: 'user', content: mensaje }];
+        saveChat(chat);
+        mensajeEl.value = '';
+        render();
+
+        setBusy(true);
+
+        try {
+          const resp = await fetch('{% url "generador_ia_api" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ messages: chat }),
+          });
+
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.ok) {
+            chat = [...chat, { role: 'assistant', content: data.error || 'No se pudo generar la respuesta.' }];
+            saveChat(chat);
+            render();
+            return;
+          }
+
+          chat = [...chat, { role: 'assistant', content: data.respuesta || '' }];
+          saveChat(chat);
+          render();
+        } catch (e) {
+          chat = [...chat, { role: 'assistant', content: 'Error conectando con el servidor.' }];
+          saveChat(chat);
+          render();
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      if (btn) btn.addEventListener('click', enviar);
+      if (clearEl) {
+        clearEl.addEventListener('click', () => {
+          chat = [];
+          try { localStorage.removeItem(STORAGE_KEY); } catch {}
+          render();
+          if (mensajeEl) mensajeEl.focus();
+        });
+      }
+
+      if (mensajeEl) {
+        mensajeEl.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            enviar();
+          }
+        });
+      }
+
+      chat = loadChat();
+      render();
+    })();
+  </script>
 {% endblock %}
 

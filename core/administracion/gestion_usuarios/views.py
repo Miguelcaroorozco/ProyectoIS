@@ -42,6 +42,7 @@ def lista_usuarios_view(request):
 		'total_usuarios': total_usuarios,
 		'total_administradores': total_administradores,
 		'total_docentes': total_docentes,
+		'active': 'usuarios',
 		'active_admin': 'usuarios',
 	}
 
@@ -69,6 +70,7 @@ def nuevo_usuario_view(request):
 		'titulo': 'Nuevo Usuario',
 		'boton': 'Crear Usuario',
 		'form': form,
+		'active': 'usuarios',
 		'active_admin': 'usuarios',
 	}
 
@@ -102,6 +104,7 @@ def editar_usuario_view(request, usuario_id: int):
 		'titulo': 'Editar Usuario',
 		'boton': 'Guardar Cambios',
 		'form': form,
+		'active': 'usuarios',
 		'active_admin': 'usuarios',
 	}
 

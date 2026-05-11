@@ -1,14 +1,10 @@
-{% extends 'administracion/base_admin.html' %}
+{% extends 'app_base.html' %}
 
 {% block title %}Admin - Facultades{% endblock %}
 
 {% block content %}
-  <div class="header">
-    <div>
-      <h1 class="title">Facultades</h1>
-      <p class="subtitle">Registrar y consultar facultades</p>
-    </div>
-  </div>
+  <h1 class="page-title">Facultades</h1>
+  <p class="page-subtitle">Registrar y consultar facultades</p>
 
   <div class="card" style="margin-bottom:16px;">
     <form method="post">
@@ -21,7 +17,8 @@
   </div>
 
   <div class="card">
-    <table>
+    <div class="table-responsive">
+      <table class="table">
       <thead>
         <tr>
           <th>Código</th>
@@ -40,6 +37,7 @@
         <tr><td colspan="3">No hay facultades registradas.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+      </table>
+    </div>
   </div>
 {% endblock %}

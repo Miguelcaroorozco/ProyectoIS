@@ -30,6 +30,38 @@
     </div>
   </section>
 
+  {% if usuario_rol_codigo == 'administrador' %}
+    {% url 'admin_facultades' as admin_facultades_url %}
+    {% url 'admin_programas' as admin_programas_url %}
+    {% url 'admin_usuarios' as admin_usuarios_url %}
+
+    {% if admin_facultades_url or admin_programas_url or admin_usuarios_url %}
+      <h2 class="section-title">Panel administrativo</h2>
+      <section class="grid-4" aria-label="Accesos administrativos">
+        {% if admin_facultades_url %}
+          <a class="card" href="{{ admin_facultades_url }}" style="display:block;">
+            <p class="card-title">Facultades</p>
+            <p class="metric-sub">Registrar y consultar facultades</p>
+          </a>
+        {% endif %}
+
+        {% if admin_programas_url %}
+          <a class="card" href="{{ admin_programas_url }}" style="display:block;">
+            <p class="card-title">Programas</p>
+            <p class="metric-sub">Registrar y consultar programas</p>
+          </a>
+        {% endif %}
+
+        {% if admin_usuarios_url %}
+          <a class="card" href="{{ admin_usuarios_url }}" style="display:block;">
+            <p class="card-title">Usuarios</p>
+            <p class="metric-sub">Administrar usuarios del sistema</p>
+          </a>
+        {% endif %}
+      </section>
+    {% endif %}
+  {% endif %}
+
   <h2 class="section-title">Actividades Recientes</h2>
   <div class="card">
     {% if actividades_recientes %}

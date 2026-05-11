@@ -74,12 +74,13 @@ def admin_facultades(request):
         messages.error(request, 'No se pudo crear la facultad. Revisa los campos.')
 
     contexto = {
+        'active': 'facultades',
         'active_admin': 'facultades',
         'form_facultad_admin': form_facultad,
         'facultades_registradas': Facultad.objects.order_by('nombre')[:50],
     }
 
-    return render(request, 'administracion/facultades.html', contexto)
+    return render(request, 'facultades/facultades.html', contexto)
 
 
 @login_required
@@ -99,9 +100,10 @@ def admin_programas(request):
         messages.error(request, 'No se pudo crear el programa. Revisa los campos.')
 
     contexto = {
+        'active': 'programas',
         'active_admin': 'programas',
         'form_programa_admin': form_programa,
         'programas_registrados': Programa.objects.select_related('facultad').order_by('nombre')[:50],
     }
 
-    return render(request, 'administracion/programas.html', contexto)
+    return render(request, 'programas/programas.html', contexto)
