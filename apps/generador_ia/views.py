@@ -1,7 +1,9 @@
 import json
 import os
+import re
 import urllib.error
 import urllib.request
+from datetime import date
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
@@ -111,6 +113,194 @@ def _buscar_actividad(actividad_ref: str):
     return Actividad.objects.filter(nombre__icontains=ref).order_by('-fecha_inicio', '-id').first()
 
 
+def _is_create_activity_intent(user_text: str) -> bool:
+    if not user_text:
+        return False
+    txt = str(user_text).strip().lower()
+
+    if re.match(r'^/(crear_actividad|crear-actividad|crearactividad|crear|actividad)\b', txt):
+        return True
+
+    return re.match(
+        r'^(crea|crear|registra|registrar|agrega|agregar|guarda|guardar)\s+(una\s+)?actividad\b',
+        txt,
+    ) is not None
+
+
+def _parse_iso_date(value: str):
+    if not value:
+        return None
+    s = str(value).strip()
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', s)
+    if not m:
+        return None
+    try:
+        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def _extract_activity_payload_with_ollama(
+    *,
+    model: str,
+    resumen: dict,
+    user_request: str,
+    timeout_seconds: int = 60,
+) -> dict:
+    system = (
+        "Eres un asistente que convierte solicitudes en una Actividad para un sistema universitario. "
+        "Devuelve SOLO JSON válido, sin texto adicional. "
+        "Usa exactamente estas llaves: "
+        "mes, periodo, fecha_inicio, fecha_fin, tipologia, modalidad, programa, nombre, "
+        "descripcion, objetivo, numero_participantes, horas_dedicadas, recursos_utilizados, resultados, observaciones. "
+        "Reglas: "
+        "- 'mes' debe ser uno de: enero,febrero,marzo,abril,mayo,junio,julio,agosto,septiembre,octubre,noviembre,diciembre. "
+        "- 'tipologia' debe ser uno de: taller,seminario,curso,otro. "
+        "- 'modalidad' debe ser uno de: presencial,virtual,mixta. "
+        "- 'fecha_inicio' y 'fecha_fin' deben venir en formato YYYY-MM-DD. "
+        "- Si un dato no se especifica, usa string vacío '' o 0 para números; no inventes fechas. "
+    )
+
+    user = (
+        f"Totales del sistema (por si sirve de contexto, no inventes datos): {json.dumps(resumen, ensure_ascii=False)}\n"
+        f"Solicitud del usuario: {user_request}" 
+    )
+
+    payload = {
+        'model': model,
+        'format': 'json',
+        'stream': False,
+        'messages': [
+            {'role': 'system', 'content': system},
+            {'role': 'user', 'content': user},
+        ],
+    }
+    return _ollama_request(payload, timeout_seconds=timeout_seconds)
+
+
+def _extract_first_json_object(text: str):
+    if not text:
+        return None
+    s = str(text).strip()
+    start = s.find('{')
+    end = s.rfind('}')
+    if start == -1 or end == -1 or end <= start:
+        return None
+    candidate = s[start : end + 1]
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        return None
+
+
+def _missing_fields_message(missing: list) -> str:
+    labels = {
+        'mes': 'Mes (ej. mayo)',
+        'periodo': 'Periodo (ej. 2026-1)',
+        'fecha_inicio_raw': 'Fecha inicio (YYYY-MM-DD)',
+        'fecha_fin_raw': 'Fecha fin (YYYY-MM-DD)',
+        'tipologia': 'Tipología (taller, seminario, curso, otro)',
+        'modalidad': 'Modalidad (presencial, virtual, mixta)',
+        'programa': 'Programa',
+        'nombre': 'Nombre de la actividad',
+        'fecha_inicio(formato YYYY-MM-DD)': 'Fecha inicio (formato YYYY-MM-DD)',
+        'fecha_fin(formato YYYY-MM-DD)': 'Fecha fin (formato YYYY-MM-DD)',
+        'fecha_fin(no puede ser anterior a fecha_inicio)': 'Fechas (fecha fin no puede ser anterior a fecha inicio)',
+        'mes(valor inválido)': 'Mes (valor inválido)',
+        'tipologia(valor inválido)': 'Tipología (valor inválido)',
+        'modalidad(valor inválido)': 'Modalidad (valor inválido)',
+    }
+
+    ordered = []
+    for k in (
+        'mes',
+        'periodo',
+        'fecha_inicio_raw',
+        'fecha_fin_raw',
+        'tipologia',
+        'modalidad',
+        'programa',
+        'nombre',
+        'fecha_inicio(formato YYYY-MM-DD)',
+        'fecha_fin(formato YYYY-MM-DD)',
+        'fecha_fin(no puede ser anterior a fecha_inicio)',
+        'mes(valor inválido)',
+        'tipologia(valor inválido)',
+        'modalidad(valor inválido)',
+    ):
+        if k in missing:
+            ordered.append(k)
+
+    for k in missing:
+        if k not in ordered:
+            ordered.append(k)
+
+    items = [f"- {labels.get(k, str(k))}" for k in ordered]
+    return (
+        'Puedo crear la actividad, pero no se especificó (o está inválido) lo siguiente:\n'
+        + '\n'.join(items)
+        + '\n\nEnvíame un nuevo mensaje empezando con "crear actividad" e incluyendo esos datos.'
+    )
+
+
+def _coerce_activity_fields(data: dict) -> dict:
+    if not isinstance(data, dict):
+        return {}
+
+    def _s(key: str) -> str:
+        return str(data.get(key) or '').strip()
+
+    def _i(key: str) -> int:
+        try:
+            n = int(data.get(key) or 0)
+            return n if n >= 0 else 0
+        except (TypeError, ValueError):
+            return 0
+
+    return {
+        'mes': _s('mes').lower(),
+        'periodo': _s('periodo'),
+        'fecha_inicio_raw': _s('fecha_inicio'),
+        'fecha_fin_raw': _s('fecha_fin'),
+        'tipologia': _s('tipologia').lower(),
+        'modalidad': _s('modalidad').lower(),
+        'programa': _s('programa'),
+        'nombre': _s('nombre'),
+        'descripcion': _s('descripcion'),
+        'objetivo': _s('objetivo'),
+        'numero_participantes': _i('numero_participantes'),
+        'horas_dedicadas': _i('horas_dedicadas'),
+        'recursos_utilizados': _s('recursos_utilizados'),
+        'resultados': _s('resultados'),
+        'observaciones': _s('observaciones'),
+    }
+
+
+def _validate_activity_fields(fields: dict) -> list:
+    missing = []
+    for k in ('mes', 'periodo', 'fecha_inicio_raw', 'fecha_fin_raw', 'tipologia', 'modalidad', 'programa', 'nombre'):
+        if not (fields.get(k) or '').strip():
+            missing.append(k)
+
+    fi = _parse_iso_date(fields.get('fecha_inicio_raw') or '')
+    ff = _parse_iso_date(fields.get('fecha_fin_raw') or '')
+    if fields.get('fecha_inicio_raw') and not fi:
+        missing.append('fecha_inicio(formato YYYY-MM-DD)')
+    if fields.get('fecha_fin_raw') and not ff:
+        missing.append('fecha_fin(formato YYYY-MM-DD)')
+    if fi and ff and ff < fi:
+        missing.append('fecha_fin(no puede ser anterior a fecha_inicio)')
+
+    if fields.get('mes') and fields['mes'] not in {m for m, _ in Actividad.MESES}:
+        missing.append('mes(valor inválido)')
+    if fields.get('tipologia') and fields['tipologia'] not in {t for t, _ in Actividad.TIPOLOGIAS}:
+        missing.append('tipologia(valor inválido)')
+    if fields.get('modalidad') and fields['modalidad'] not in {m for m, _ in Actividad.MODALIDADES}:
+        missing.append('modalidad(valor inválido)')
+
+    return missing
+
+
 @login_required
 @require_POST
 def generador_ia_api(request):
@@ -146,10 +336,92 @@ def generador_ia_api(request):
     if not cleaned_messages or cleaned_messages[-1]['role'] != 'user':
         return JsonResponse({'ok': False, 'error': 'Envía un mensaje del usuario para continuar.'}, status=400)
 
+    if not mensaje:
+        mensaje = cleaned_messages[-1]['content']
+
     model = (os.environ.get('OLLAMA_MODEL') or 'llama3.2:3b').strip() or 'llama3.2:3b'
 
     actividad = _buscar_actividad(actividad_ref)
     resumen = _resumen_bd()
+
+    if _is_create_activity_intent(mensaje):
+        try:
+            raw = _extract_activity_payload_with_ollama(
+                model=model,
+                resumen=resumen,
+                user_request=mensaje,
+            )
+            content = (
+                (raw.get('message') or {}).get('content')
+                or raw.get('response')
+                or ''
+            ).strip()
+            extracted = json.loads(content) if content else {}
+        except urllib.error.URLError:
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': (
+                        'No pude conectarme a Ollama. Verifica que esté corriendo en tu PC: '
+                        '`ollama serve` y que exista el modelo configurado.'
+                    ),
+                },
+                status=502,
+            )
+        except json.JSONDecodeError:
+            extracted = _extract_first_json_object(content) or {}
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Error preparando la actividad con IA.'}, status=500)
+
+        fields = _coerce_activity_fields(extracted)
+        missing = _validate_activity_fields(fields)
+        if not extracted:
+            return JsonResponse(
+                {
+                    'ok': True,
+                    'respuesta': _missing_fields_message(
+                        ['mes', 'periodo', 'fecha_inicio_raw', 'fecha_fin_raw', 'tipologia', 'modalidad', 'programa', 'nombre']
+                    ),
+                }
+            )
+
+        if missing:
+            return JsonResponse({'ok': True, 'respuesta': _missing_fields_message(missing)})
+
+        fi = _parse_iso_date(fields.get('fecha_inicio_raw') or '')
+        ff = _parse_iso_date(fields.get('fecha_fin_raw') or '')
+
+        actividad_nueva = Actividad.objects.create(
+            mes=fields['mes'],
+            periodo=fields['periodo'],
+            fecha_inicio=fi,
+            fecha_fin=ff,
+            tipologia=fields['tipologia'],
+            modalidad=fields['modalidad'],
+            programa=fields['programa'],
+            nombre=fields['nombre'],
+            descripcion=fields.get('descripcion') or '',
+            objetivo=fields.get('objetivo') or '',
+            numero_participantes=fields.get('numero_participantes') or 0,
+            horas_dedicadas=fields.get('horas_dedicadas') or 0,
+            recursos_utilizados=fields.get('recursos_utilizados') or '',
+            resultados=fields.get('resultados') or '',
+            observaciones=fields.get('observaciones') or '',
+            creado_por=request.user,
+        )
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'respuesta': (
+                    'Actividad creada correctamente.\n'
+                    + f"ID: {actividad_nueva.id}\n"
+                    + f"Nombre: {actividad_nueva.nombre}\n"
+                    + f"Periodo: {actividad_nueva.periodo}\n"
+                    + f"Fechas: {actividad_nueva.fecha_inicio} a {actividad_nueva.fecha_fin}"
+                ),
+            }
+        )
 
     contexto_actividad = None
     if actividad:

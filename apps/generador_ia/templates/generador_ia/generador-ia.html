@@ -237,7 +237,11 @@
       const messagesEl = document.getElementById('ia-messages');
       const clearEl = document.getElementById('ia-clear');
 
-      const STORAGE_KEY = 'generador_ia_chat_v1';
+      const BASE_STORAGE_KEY = 'generador_ia_chat_v1';
+      const USER_ID = "{{ request.user.id|default:'0'|escapejs }}";
+      const STORAGE_KEY = `${BASE_STORAGE_KEY}:user:${USER_ID}`;
+
+      try { localStorage.removeItem(BASE_STORAGE_KEY); } catch {}
 
       /** @type {{role: 'user'|'assistant', content: string}[]} */
       let chat = [];
@@ -270,7 +274,6 @@
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(nextChat));
         } catch {
-          // ignore storage errors (private mode, full quota, etc.)
         }
       }
 
@@ -288,23 +291,17 @@
       function normalizeAssistantText(text) {
         let s = String(text ?? '');
 
-        // Normalize newlines
         s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        // Remove markdown fences and bold markers
         s = s.replace(/```/g, '');
         s = s.replace(/\*\*/g, '');
 
-        // Normalize bullets at start of line: '* ' or '+ ' -> '- '
         s = s.replace(/^(\s*)[\*\+]\s+/gm, '$1- ');
 
-        // Remove headings '### '
         s = s.replace(/^(\s*)#{1,6}\s+/gm, '$1');
 
-        // Remove blockquote markers
         s = s.replace(/^(\s*)>\s+/gm, '$1');
 
-        // Collapse excessive blank lines
         s = s.replace(/\n{3,}/g, '\n\n');
 
         return s.trim();
