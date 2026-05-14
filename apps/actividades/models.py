@@ -51,6 +51,8 @@ class Actividad(models.Model):
     resultados = models.TextField(blank=True)
     observaciones = models.TextField(blank=True)
 
+    creado_con_ia = models.BooleanField(default=False)
+
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

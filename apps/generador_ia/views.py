@@ -1,9 +1,11 @@
 import json
 import os
 import re
+import unicodedata
 import urllib.error
 import urllib.request
-from datetime import date
+from urllib.parse import urlencode
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
@@ -62,14 +64,64 @@ def _normalize_ai_plain_text(text: str) -> str:
     return '\n'.join(out_lines).strip()
 
 
+def _normalize_gemini_model_name(model: str) -> str:
+    """Normalize GEMINI_MODEL values to the format expected by the Gemini REST API.
+
+    Accepts common variants like:
+    - "Gemini-2.5-Flash" -> "gemini-2.5-flash"
+    - "models/gemini-1.5-flash" -> "gemini-1.5-flash"
+    - ".../models/gemini-2.0-flash:generateContent" -> "gemini-2.0-flash"
+    """
+
+    raw = (model or '').strip()
+    if not raw:
+        return ''
+
+    # Remove any endpoint suffix like ":generateContent".
+    raw = raw.split(':', 1)[0].strip()
+
+    # If a full path was provided, keep the last segment.
+    if '/' in raw:
+        raw = raw.rsplit('/', 1)[-1].strip()
+
+    # Strip optional "models/" prefix.
+    if raw.lower().startswith('models/'):
+        raw = raw[7:].strip()
+
+    # Normalize casing and separators.
+    # Keep token separation: spaces become dashes (so "Flash Lite" -> "flash-lite").
+    raw = re.sub(r'\s+', '-', raw)
+    raw = raw.replace('_', '-')
+    raw = raw.lower()
+    raw = re.sub(r'-{2,}', '-', raw).strip('-')
+
+    # Some users write "gemini" with different casing/prefixes.
+    if raw.startswith('gemini') and not raw.startswith('gemini-'):
+        # e.g. "gemini2.5-flash" -> "gemini-2.5-flash"
+        raw = 'gemini-' + raw[len('gemini') :].lstrip('-')
+
+    # Final sanity check: Gemini model names are typically lowercase and contain letters/numbers/dots/dashes.
+    # If the value is still clearly not a model id, keep it as-is to let the API return a detailed error.
+    return raw
+
+
 @login_required
 def generador_ia(request):
     return render(request, 'generador_ia/generador-ia.html')
 
 
-def _ollama_request(payload: dict, timeout_seconds: int = 60) -> dict:
-    base_url = (os.environ.get('OLLAMA_BASE_URL') or 'http://localhost:11434').rstrip('/')
-    url = f'{base_url}/api/chat'
+def _gemini_request(*, payload: dict, model: str, timeout_seconds: int = 60) -> dict:
+    api_key = (os.environ.get('GEMINI_API_KEY') or '').strip()
+    if not api_key:
+        raise RuntimeError('GEMINI_API_KEY no está configurado.')
+
+    base_url = (os.environ.get('GEMINI_BASE_URL') or 'https://generativelanguage.googleapis.com').rstrip('/')
+    model = _normalize_gemini_model_name(model) or 'gemini-1.5-flash'
+
+    # API v1beta: generateContent
+    # https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key=...
+    query = urlencode({'key': api_key})
+    url = f'{base_url}/v1beta/models/{model}:generateContent?{query}'
 
     body = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
@@ -79,9 +131,47 @@ def _ollama_request(payload: dict, timeout_seconds: int = 60) -> dict:
         method='POST',
     )
 
-    with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
-        raw = resp.read().decode('utf-8')
-        return json.loads(raw)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+            raw = resp.read().decode('utf-8')
+            return json.loads(raw)
+    except urllib.error.HTTPError as e:
+        # Intentar leer el cuerpo del error para un mensaje más útil.
+        body = ''
+        try:
+            body = (e.read() or b'').decode('utf-8', errors='replace')
+        except Exception:
+            body = ''
+
+        detail = ''
+        if body:
+            try:
+                parsed = json.loads(body)
+                detail = (parsed.get('error') or {}).get('message') or ''
+            except Exception:
+                detail = body[:400]
+
+        msg = f'Gemini API error (HTTP {getattr(e, "code", "?")}): {detail}'.strip()
+        if 'unexpected model name format' in msg.lower():
+            msg += ' (Tip: configura GEMINI_MODEL como "gemini-2.5-flash" o "gemini-1.5-flash"; sin "Gemini-" y en minúsculas.)'
+        raise RuntimeError(msg)
+
+
+def _gemini_extract_text(result: dict) -> str:
+    if not isinstance(result, dict):
+        return ''
+
+    candidates = result.get('candidates')
+    if not candidates or not isinstance(candidates, list):
+        return ''
+
+    content = (candidates[0] or {}).get('content') or {}
+    parts = content.get('parts')
+    if not parts or not isinstance(parts, list):
+        return ''
+
+    text = (parts[0] or {}).get('text')
+    return (text or '').strip()
 
 
 def _resumen_bd() -> dict:
@@ -116,22 +206,179 @@ def _buscar_actividad(actividad_ref: str):
 def _is_create_activity_intent(user_text: str) -> bool:
     if not user_text:
         return False
-    txt = str(user_text).strip().lower()
+
+    def _norm(s: str) -> str:
+        s = str(s or '').strip().lower()
+        # Strip accents to make regex matching robust (créala -> creala).
+        s = ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+        return s
+
+    txt = _norm(user_text)
 
     if re.match(r'^/(crear_actividad|crear-actividad|crearactividad|crear|actividad)\b', txt):
         return True
 
-    return re.match(
-        r'^(crea|crear|registra|registrar|agrega|agregar|guarda|guardar)\s+(una\s+)?actividad\b',
+    # Aceptar variantes comunes:
+    # - "crea actividad"
+    # - "crea una actividad"
+    # - "crea la/esa/esta actividad"
+    # - "registra esa actividad" / "guarda la actividad"
+    if re.match(
+        r'^(crea|crear|registra|registrar|agrega|agregar|guarda|guardar)\s+actividad\b',
         txt,
-    ) is not None
+    ):
+        return True
+
+    if re.match(
+        r'^(crea|crear|registra|registrar|agrega|agregar|guarda|guardar)\s+(una|la|esta|esa)\s+actividad\b',
+        txt,
+    ):
+        return True
+
+    # Frases naturales:
+    # - "quiero que crees esa actividad"
+    # - "puedes crear esa actividad"
+    # - "por favor crea esa actividad"
+    if re.search(r'\b(crea|crear|crees|registre|registrar|guardes|guardar|agregues|agregar)\b', txt) and re.search(
+        r'\bactividad\b',
+        txt,
+    ):
+        if re.search(r'\b(quiero|puedes|podrias|por favor|necesito|haz)\b', txt):
+            return True
+
+    # Imperativo directo con pronombres:
+    # - "creala" / "creala tu" / "creala tu mismo"
+    if re.match(r'^(creala|creala\s+tu|creala\s+tu\s+mismo|creala\s+por\s+mi)\b', txt):
+        return True
+
+    return False
+
+
+def _is_delegated_create_intent(user_text: str) -> bool:
+    """True when the user explicitly delegates missing choices to the assistant."""
+    if not user_text:
+        return False
+    s = str(user_text).strip().lower()
+    s = ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+
+    # Examples: "creala tu", "creala tu mismo", "quiero que tu mismo la crees",
+    # "dejalo a tu gusto", "a tu gusto".
+    if re.search(r'\b(creala|crea)\b', s) and re.search(r'\btu\b', s):
+        return True
+    if re.search(r'\btu\s+mismo\b', s) or re.search(r'\btu\s+misma\b', s):
+        return True
+    if re.search(r'\b(a tu gusto|como quieras|como quiera|tu decides|tu elige)\b', s):
+        return True
+    return False
+
+
+def _is_contextual_create_intent(*, mensaje: str, cleaned_messages: list) -> bool:
+    """Detect create intent when the message is deictic ('la crees') and the chat contains an activity proposal."""
+    if not mensaje or not cleaned_messages:
+        return False
+
+    msg = str(mensaje).strip().lower()
+    msg = ''.join(c for c in unicodedata.normalize('NFKD', msg) if not unicodedata.combining(c))
+
+    # If the user did not mention "actividad" but refers to "la" and a creation verb.
+    if 'actividad' in msg:
+        return False
+
+    if re.search(r'\b(la|esa|esta)\b', msg) is None:
+        return False
+
+    if re.search(r'\b(crees|crearla|creala|registrarla|registrala|guardarla|guardala)\b', msg) is None:
+        return False
+
+    # Look for a recent proposal structure.
+    recent = cleaned_messages[-10:]
+    proposal_hits = 0
+    for m in recent:
+        txt = (m.get('content') or '').strip().lower()
+        if not txt:
+            continue
+        if 'nombre:' in txt:
+            proposal_hits += 1
+        if 'objetivo:' in txt:
+            proposal_hits += 1
+        if 'descripci' in txt:
+            proposal_hits += 1
+    return proposal_hits >= 2
+
+
+def _build_activity_request_from_history(*, mensaje: str, cleaned_messages: list) -> str:
+    """Build a better extraction prompt for activity creation.
+
+    If the user says something generic like "crea esa actividad", we attach the
+    recent chat context so Gemini can extract the actual fields.
+    """
+
+    msg = (mensaje or '').strip()
+    if not cleaned_messages:
+        return msg
+
+    # Heurística: si el mensaje refiere (esta/esa/la) actividad, usar contexto.
+    # No dependemos del largo del mensaje, porque frases como "quiero que crees esa actividad"
+    # también necesitan el contexto.
+    generic = re.search(r'\b(esta|esa|la)\s+actividad\b', msg.lower()) is not None
+
+    if not generic:
+        return msg
+
+    recent = cleaned_messages[-10:]
+    lines = []
+    for m in recent:
+        role = (m.get('role') or '').strip().lower()
+        content = (m.get('content') or '').strip()
+        if not content:
+            continue
+        tag = 'USUARIO' if role == 'user' else 'ASISTENTE'
+        lines.append(f'{tag}: {content}')
+
+    contexto = '\n'.join(lines).strip()
+    if not contexto:
+        return msg
+
+    return (
+        'Usa la siguiente conversación para construir los campos de la actividad. '\
+        'La última instrucción del usuario es crear/guardar la actividad descrita.\n\n'
+        + contexto
+    )
+
+
+def _is_defaults_followup_intent(*, mensaje: str, cleaned_messages: list) -> bool:
+    """Detect follow-up like 'eso lo dejo a tu gusto' after missing-fields prompt."""
+    msg = (mensaje or '').strip().lower()
+    msg = ''.join(c for c in unicodedata.normalize('NFKD', msg) if not unicodedata.combining(c))
+    if not msg:
+        return False
+
+    if re.search(r'\b(a tu gusto|a su gusto|como quieras|como quiera|lo dejo a tu gusto|dejalo a tu gusto|dejalo)\b', msg) is None:
+        return False
+
+    # If the assistant previously asked for missing fields, treat this as consent to fill defaults.
+    for m in reversed(cleaned_messages[-6:]):
+        if (m.get('role') or '') != 'assistant':
+            continue
+        content = (m.get('content') or '').strip().lower()
+        if 'puedo crear la actividad, pero no se especificó' in content:
+            return True
+        if 'envíame un nuevo mensaje empezando con "crear actividad"' in content:
+            return True
+
+    return False
 
 
 def _parse_iso_date(value: str):
     if not value:
         return None
     s = str(value).strip()
-    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', s)
+
+    # Accept common variants besides YYYY-MM-DD:
+    # - YYYY/MM/DD
+    # - YYYY.MM.DD
+    # - YYYY MM DD
+    m = re.match(r'^(\d{4})[-\s\./](\d{1,2})[-\s\./](\d{1,2})$', s)
     if not m:
         return None
     try:
@@ -140,14 +387,39 @@ def _parse_iso_date(value: str):
         return None
 
 
-def _extract_activity_payload_with_ollama(
+def _mes_es_from_date(d: date) -> str:
+    mapping = {
+        1: 'enero',
+        2: 'febrero',
+        3: 'marzo',
+        4: 'abril',
+        5: 'mayo',
+        6: 'junio',
+        7: 'julio',
+        8: 'agosto',
+        9: 'septiembre',
+        10: 'octubre',
+        11: 'noviembre',
+        12: 'diciembre',
+    }
+    return mapping.get(int(d.month), 'mayo')
+
+
+def _periodo_from_date(d: date) -> str:
+    # Heurística simple: semestre 1 (ene-jun), semestre 2 (jul-dic)
+    semestre = 1 if int(d.month) <= 6 else 2
+    return f'{int(d.year)}-{semestre}'
+
+
+def _extract_activity_payload_with_gemini(
     *,
     model: str,
     resumen: dict,
     user_request: str,
+    allow_defaults: bool = False,
     timeout_seconds: int = 60,
 ) -> dict:
-    system = (
+    base_rules = (
         "Eres un asistente que convierte solicitudes en una Actividad para un sistema universitario. "
         "Devuelve SOLO JSON válido, sin texto adicional. "
         "Usa exactamente estas llaves: "
@@ -158,8 +430,22 @@ def _extract_activity_payload_with_ollama(
         "- 'tipologia' debe ser uno de: taller,seminario,curso,otro. "
         "- 'modalidad' debe ser uno de: presencial,virtual,mixta. "
         "- 'fecha_inicio' y 'fecha_fin' deben venir en formato YYYY-MM-DD. "
-        "- Si un dato no se especifica, usa string vacío '' o 0 para números; no inventes fechas. "
+        "- No inventes fechas: si no están, usa ''. "
     )
+
+    if allow_defaults:
+        system = (
+            base_rules
+            + "- Si el usuario dice 'a tu gusto' o similar, puedes completar campos no críticos con valores razonables. "
+            + "- Puedes elegir defaults para: mes, periodo, fecha_inicio, fecha_fin, tipologia, modalidad, programa, nombre, descripcion, objetivo, recursos_utilizados, resultados, observaciones. "
+            + "- Para campos numéricos usa 0 si no se indican. "
+            + "- Para 'mes': si hay 'fecha_inicio', usa el mes de esa fecha; si no, usa 'mayo' como default. "
+            + "- Para 'programa': si no se especifica, usa 'Ingeniería de Sistemas'. "
+            + "- Para 'periodo': si hay 'fecha_inicio', usa YYYY-1 o YYYY-2 según el mes; si no, usa el año actual con '-1'. "
+            + "- Para fechas: si no se especifican, elige una fecha de inicio próxima (ej. la próxima semana) y usa la misma fecha para 'fecha_fin' si no se indica duración. "
+        )
+    else:
+        system = base_rules + "- Si un dato no se especifica, usa string vacío '' o 0 para números. "
 
     user = (
         f"Totales del sistema (por si sirve de contexto, no inventes datos): {json.dumps(resumen, ensure_ascii=False)}\n"
@@ -167,15 +453,49 @@ def _extract_activity_payload_with_ollama(
     )
 
     payload = {
-        'model': model,
-        'format': 'json',
-        'stream': False,
-        'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': user},
+        'systemInstruction': {'parts': [{'text': system}]},
+        'contents': [
+            {'role': 'user', 'parts': [{'text': user}]},
         ],
+        'generationConfig': {
+            'temperature': 0.2,
+            'maxOutputTokens': 1024,
+            # Intentamos forzar JSON cuando esté soportado.
+            'responseMimeType': 'application/json',
+        },
     }
-    return _ollama_request(payload, timeout_seconds=timeout_seconds)
+    return _gemini_request(payload=payload, model=model, timeout_seconds=timeout_seconds)
+
+
+def _gemini_chat_text(
+    *,
+    model: str,
+    system: str,
+    cleaned_messages: list,
+    timeout_seconds: int = 60,
+) -> str:
+    # Gemini API usa roles: user / model. Mapeamos assistant -> model.
+    contents = []
+    for msg in cleaned_messages:
+        role = (msg.get('role') or '').strip()
+        text = (msg.get('content') or '').strip()
+        if not text:
+            continue
+        if role == 'user':
+            contents.append({'role': 'user', 'parts': [{'text': text}]})
+        else:
+            contents.append({'role': 'model', 'parts': [{'text': text}]})
+
+    payload = {
+        'systemInstruction': {'parts': [{'text': system}]},
+        'contents': contents,
+        'generationConfig': {
+            'temperature': 0.4,
+            'maxOutputTokens': 1024,
+        },
+    }
+    result = _gemini_request(payload=payload, model=model, timeout_seconds=timeout_seconds)
+    return _gemini_extract_text(result)
 
 
 def _extract_first_json_object(text: str):
@@ -339,41 +659,94 @@ def generador_ia_api(request):
     if not mensaje:
         mensaje = cleaned_messages[-1]['content']
 
-    model = (os.environ.get('OLLAMA_MODEL') or 'llama3.2:3b').strip() or 'llama3.2:3b'
+    model = _normalize_gemini_model_name(os.environ.get('GEMINI_MODEL') or '') or 'gemini-1.5-flash'
 
     actividad = _buscar_actividad(actividad_ref)
     resumen = _resumen_bd()
 
-    if _is_create_activity_intent(mensaje):
+    allow_defaults = False
+    create_intent = _is_create_activity_intent(mensaje)
+
+    if not create_intent and _is_contextual_create_intent(mensaje=mensaje, cleaned_messages=cleaned_messages):
+        create_intent = True
+
+    if create_intent and _is_delegated_create_intent(mensaje):
+        allow_defaults = True
+
+    if not create_intent and _is_defaults_followup_intent(mensaje=mensaje, cleaned_messages=cleaned_messages):
+        create_intent = True
+        allow_defaults = True
+
+    if create_intent:
         try:
-            raw = _extract_activity_payload_with_ollama(
+            user_request = _build_activity_request_from_history(mensaje=mensaje, cleaned_messages=cleaned_messages)
+            raw = _extract_activity_payload_with_gemini(
                 model=model,
                 resumen=resumen,
-                user_request=mensaje,
+                user_request=user_request,
+                allow_defaults=allow_defaults,
             )
-            content = (
-                (raw.get('message') or {}).get('content')
-                or raw.get('response')
-                or ''
-            ).strip()
+            content = _gemini_extract_text(raw)
             extracted = json.loads(content) if content else {}
         except urllib.error.URLError:
             return JsonResponse(
                 {
                     'ok': False,
                     'error': (
-                        'No pude conectarme a Ollama. Verifica que esté corriendo en tu PC: '
-                        '`ollama serve` y que exista el modelo configurado.'
+                        'No pude conectarme a Gemini. Verifica tu conexión a Internet y '
+                        'que `GEMINI_API_KEY` esté configurada correctamente en tu `.env`.'
                     ),
                 },
                 status=502,
             )
+        except RuntimeError as e:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=400)
         except json.JSONDecodeError:
             extracted = _extract_first_json_object(content) or {}
         except Exception:
             return JsonResponse({'ok': False, 'error': 'Error preparando la actividad con IA.'}, status=500)
 
         fields = _coerce_activity_fields(extracted)
+
+        # If the user explicitly allowed defaults ("a tu gusto" follow-up),
+        # complete missing/invalid required fields with safe defaults.
+        if allow_defaults:
+            today = date.today()
+            default_start = today + timedelta(days=7)
+
+            # Dates
+            fi_obj = _parse_iso_date(fields.get('fecha_inicio_raw') or '')
+            ff_obj = _parse_iso_date(fields.get('fecha_fin_raw') or '')
+            if not fi_obj:
+                fi_obj = default_start
+                fields['fecha_inicio_raw'] = fi_obj.strftime('%Y-%m-%d')
+            if not ff_obj:
+                ff_obj = fi_obj
+                fields['fecha_fin_raw'] = ff_obj.strftime('%Y-%m-%d')
+
+            # Period
+            if not (fields.get('periodo') or '').strip():
+                fields['periodo'] = _periodo_from_date(fi_obj)
+
+            # Month
+            if not (fields.get('mes') or '').strip():
+                fields['mes'] = _mes_es_from_date(fi_obj)
+
+            # Program
+            if not (fields.get('programa') or '').strip():
+                fields['programa'] = 'Ingeniería de Sistemas'
+
+            # Tipología / modalidad must be within allowed choices
+            allowed_tipologias = {t for t, _ in Actividad.TIPOLOGIAS}
+            allowed_modalidades = {m for m, _ in Actividad.MODALIDADES}
+            if (fields.get('tipologia') or '') not in allowed_tipologias:
+                fields['tipologia'] = 'otro'
+            if (fields.get('modalidad') or '') not in allowed_modalidades:
+                fields['modalidad'] = 'presencial'
+
+            if not (fields.get('nombre') or '').strip():
+                fields['nombre'] = 'Actividad generada por IA'
+
         missing = _validate_activity_fields(fields)
         if not extracted:
             return JsonResponse(
@@ -407,6 +780,7 @@ def generador_ia_api(request):
             recursos_utilizados=fields.get('recursos_utilizados') or '',
             resultados=fields.get('resultados') or '',
             observaciones=fields.get('observaciones') or '',
+            creado_con_ia=True,
             creado_por=request.user,
         )
 
@@ -452,7 +826,8 @@ def generador_ia_api(request):
         "Responde en español, claro y directo. "
         "IMPORTANTE: responde en texto plano (sin Markdown). "
         "No uses asteriscos (* o **), ni listas con '*', ni negritas con '**'. "
-        "Si necesitas listas, usa guiones '-' y títulos con ':' (por ejemplo: Nombre: ...)."
+        "Si necesitas listas, usa guiones '-' y títulos con ':' (por ejemplo: Nombre: ...). "
+        "No afirmes que una actividad fue creada/guardada en el sistema a menos que el backend lo confirme con un ID."
     )
 
     user_parts = [
@@ -466,47 +841,32 @@ def generador_ia_api(request):
     user_parts.append(f"Solicitud del usuario: {mensaje}")
     user_prompt = "\n\n".join(user_parts)
 
-    payload_messages = [
-        {'role': 'system', 'content': system},
-        {
-            'role': 'system',
-            'content': (
-                'Contexto del sistema (totales y actividad si aplica). '\
-                + user_prompt
-            ),
-        },
-        *cleaned_messages,
-    ]
-
-    payload = {
-        'model': model,
-        'stream': False,
-        'messages': payload_messages,
-    }
-
     try:
-        result = _ollama_request(payload)
-        content = (
-            (result.get('message') or {}).get('content')
-            or result.get('response')
-            or ''
-        ).strip()
+        # Inyectamos el contexto como un mensaje del sistema y dejamos el historial.
+        system_with_context = system + "\n\n" + "Contexto del sistema:\n" + user_prompt
+        content = _gemini_chat_text(
+            model=model,
+            system=system_with_context,
+            cleaned_messages=cleaned_messages,
+        )
     except urllib.error.URLError:
         return JsonResponse(
             {
                 'ok': False,
                 'error': (
-                    'No pude conectarme a Ollama. Verifica que esté corriendo en tu PC: '
-                    '`ollama serve` y que exista el modelo configurado.'
+                    'No pude conectarme a Gemini. Verifica tu conexión a Internet y '
+                    'que `GEMINI_API_KEY` esté configurada correctamente en tu `.env`.'
                 ),
             },
             status=502,
         )
+    except RuntimeError as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
     except Exception:
         return JsonResponse({'ok': False, 'error': 'Error generando respuesta con IA.'}, status=500)
 
     if not content:
-        return JsonResponse({'ok': False, 'error': 'Ollama respondió vacío.'}, status=502)
+        return JsonResponse({'ok': False, 'error': 'Gemini respondió vacío.'}, status=502)
 
     content = _normalize_ai_plain_text(content)
 

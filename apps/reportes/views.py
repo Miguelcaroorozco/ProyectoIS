@@ -8,6 +8,8 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import render
 from openpyxl import Workbook
+from openpyxl.chart import BarChart, LineChart, PieChart, Reference
+from openpyxl.chart.label import DataLabelList
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from apps.actividades.models import Actividad
@@ -249,7 +251,162 @@ def _crear_libro_excel(tipo_reporte, actividades):
         longitud_maxima = max(len(str(celda.value)) if celda.value is not None else 0 for celda in columna)
         hoja.column_dimensions[columna[0].column_letter].width = min(max(longitud_maxima + 2, 12), 45)
 
+    _agregar_hoja_graficas(libro, _construir_datos_graficas(actividades))
+
     return libro
+
+
+def _agregar_hoja_graficas(libro: Workbook, datos_graficas: dict) -> None:
+    hoja = libro.create_sheet(title='Graficas')
+
+    titulo_font = Font(bold=True, size=14)
+    subtitulo_font = Font(bold=True, size=12)
+
+    hoja['A1'] = 'Gráficas del reporte'
+    hoja['A1'].font = titulo_font
+
+    fila = 3
+    # Los charts de openpyxl ocupan un alto considerable en filas de Excel.
+    # Reservamos un mínimo de espacio vertical por sección para evitar solapamientos.
+    min_filas_por_seccion = 22
+    chart_width = 18
+    chart_height = 9
+
+    def escribir_tabla(title: str, labels: list, values: list, start_row: int):
+        hoja[f'A{start_row}'] = title
+        hoja[f'A{start_row}'].font = subtitulo_font
+
+        hoja[f'A{start_row + 1}'] = 'Categoría'
+        hoja[f'B{start_row + 1}'] = 'Cantidad'
+        hoja[f'A{start_row + 1}'].font = Font(bold=True)
+        hoja[f'B{start_row + 1}'].font = Font(bold=True)
+
+        for i, (lab, val) in enumerate(zip(labels, values), start=0):
+            hoja.cell(row=start_row + 2 + i, column=1, value=lab)
+            hoja.cell(row=start_row + 2 + i, column=2, value=int(val) if val is not None else 0)
+
+        # Última fila con datos: start_row + 2 + (len(labels) - 1)
+        end_row = start_row + 1 + len(labels)
+        return (start_row + 1, start_row + 2, end_row)
+
+    # Tipologías (barras)
+    tip = datos_graficas.get('tipologias') or {}
+    tip_labels = tip.get('labels') or []
+    tip_values = tip.get('values') or []
+    if tip_labels and tip_values:
+        header_row, data_start, data_end = escribir_tabla('Tipologías', tip_labels, tip_values, fila)
+
+        chart = BarChart()
+        chart.type = 'col'
+        chart.title = 'Actividades por tipología'
+        chart.y_axis.title = 'Cantidad'
+        chart.x_axis.title = 'Tipología'
+
+        data = Reference(hoja, min_col=2, min_row=header_row, max_row=data_end)
+        cats = Reference(hoja, min_col=1, min_row=data_start, max_row=data_end)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.dataLabels = DataLabelList()
+        chart.dataLabels.showVal = True
+
+        chart.width = chart_width
+        chart.height = chart_height
+
+        hoja.add_chart(chart, f'D{fila + 1}')
+        fila = max(data_end + 3, fila + min_filas_por_seccion)
+
+    # Modalidades (pastel)
+    mod = datos_graficas.get('modalidades') or {}
+    mod_labels = mod.get('labels') or []
+    mod_values = mod.get('values') or []
+    if mod_labels and mod_values:
+        header_row, data_start, data_end = escribir_tabla('Modalidades', mod_labels, mod_values, fila)
+
+        chart = PieChart()
+        chart.title = 'Actividades por modalidad'
+        data = Reference(hoja, min_col=2, min_row=header_row, max_row=data_end)
+        cats = Reference(hoja, min_col=1, min_row=data_start, max_row=data_end)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+        chart.dataLabels = DataLabelList()
+        chart.dataLabels.showPercent = True
+
+        chart.width = chart_width
+        chart.height = chart_height
+
+        hoja.add_chart(chart, f'D{fila + 1}')
+        fila = max(data_end + 3, fila + min_filas_por_seccion)
+
+    # Programas (barras)
+    prog = datos_graficas.get('programas') or {}
+    prog_labels = prog.get('labels') or []
+    prog_values = prog.get('values') or []
+    if prog_labels and prog_values:
+        header_row, data_start, data_end = escribir_tabla('Programas (Top)', prog_labels, prog_values, fila)
+
+        chart = BarChart()
+        chart.type = 'col'
+        chart.title = 'Actividades por programa (Top)'
+        chart.y_axis.title = 'Cantidad'
+        chart.x_axis.title = 'Programa'
+
+        data = Reference(hoja, min_col=2, min_row=header_row, max_row=data_end)
+        cats = Reference(hoja, min_col=1, min_row=data_start, max_row=data_end)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+
+        chart.width = chart_width
+        chart.height = chart_height
+
+        hoja.add_chart(chart, f'D{fila + 1}')
+        fila = max(data_end + 3, fila + min_filas_por_seccion)
+
+    # Mensual (líneas) - actividades, participantes, horas
+    mensual = datos_graficas.get('mensual') or {}
+    m_labels = mensual.get('labels') or []
+    m_act = mensual.get('actividades') or []
+    m_part = mensual.get('participantes') or []
+    m_horas = mensual.get('horas') or []
+    if m_labels and m_act and m_part and m_horas:
+        hoja[f'A{fila}'] = 'Mensual'
+        hoja[f'A{fila}'].font = subtitulo_font
+
+        # Encabezados
+        hoja[f'A{fila + 1}'] = 'Mes'
+        hoja[f'B{fila + 1}'] = 'Actividades'
+        hoja[f'C{fila + 1}'] = 'Participantes'
+        hoja[f'D{fila + 1}'] = 'Horas'
+        for col in range(1, 5):
+            hoja.cell(row=fila + 1, column=col).font = Font(bold=True)
+
+        for i, mes in enumerate(m_labels):
+            hoja.cell(row=fila + 2 + i, column=1, value=mes)
+            hoja.cell(row=fila + 2 + i, column=2, value=int(m_act[i]) if i < len(m_act) else 0)
+            hoja.cell(row=fila + 2 + i, column=3, value=int(m_part[i]) if i < len(m_part) else 0)
+            hoja.cell(row=fila + 2 + i, column=4, value=int(m_horas[i]) if i < len(m_horas) else 0)
+
+        # Última fila con datos: (fila + 2) + (len(m_labels) - 1)
+        data_end = fila + 1 + len(m_labels)
+
+        chart = LineChart()
+        chart.title = 'Tendencia mensual'
+        chart.y_axis.title = 'Valor'
+        chart.x_axis.title = 'Mes'
+        data = Reference(hoja, min_col=2, max_col=4, min_row=fila + 1, max_row=data_end)
+        cats = Reference(hoja, min_col=1, min_row=fila + 2, max_row=data_end)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+
+        chart.width = 22
+        chart.height = 10
+
+        hoja.add_chart(chart, f'F{fila + 1}')
+
+    # Ajustes visuales simples
+    hoja.column_dimensions['A'].width = 24
+    hoja.column_dimensions['B'].width = 14
+    hoja.column_dimensions['C'].width = 16
+    hoja.column_dimensions['D'].width = 10
 
 
 @login_required

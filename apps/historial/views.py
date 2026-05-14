@@ -7,6 +7,16 @@ from django.utils.timesince import timesince
 
 from apps.actividades.models import Actividad
 
+from core.usuarios.models import Usuario
+
+
+def _usuario_es_admin(request) -> bool:
+    if getattr(request.user, 'is_superuser', False):
+        return True
+
+    perfil = Usuario.objects.select_related('rol').filter(user_id=request.user.id).only('rol__codigo').first()
+    return bool(perfil and perfil.rol and perfil.rol.codigo == 'administrador')
+
 
 def _user_display_name(user) -> str:
     if not user:
@@ -32,11 +42,17 @@ def historial(request):
     # Para evitar que una creación cuente como edición, exigimos una diferencia mínima.
     umbral_edicion = timedelta(seconds=1)
 
+    is_admin = _usuario_es_admin(request)
+
+    actividades_qs = Actividad.objects.select_related('creado_por')
+    if not is_admin:
+        actividades_qs = actividades_qs.filter(creado_por=request.user)
+
     actividades = (
-        Actividad.objects.select_related('creado_por')
-        .only(
+        actividades_qs.only(
             'id',
             'nombre',
+            'creado_con_ia',
             'fecha_creacion',
             'fecha_actualizacion',
             'creado_por__id',
@@ -51,10 +67,11 @@ def historial(request):
     eventos = []
     for actividad in actividades:
         if actividad.fecha_creacion:
+            titulo = 'Actividad creada con IA' if getattr(actividad, 'creado_con_ia', False) else 'Actividad creada'
             eventos.append(
                 {
                     'tipo': 'Creación',
-                    'titulo': 'Actividad creada',
+                    'titulo': titulo,
                     'descripcion': f"Se registró la actividad: {actividad.nombre}",
                     'usuario': _user_display_name(actividad.creado_por),
                     'timestamp': actividad.fecha_creacion,
@@ -82,4 +99,4 @@ def historial(request):
         hace = timesince(evento['timestamp'], now).split(',')[0]
         evento['hace'] = hace
 
-    return render(request, 'historial/historial.html', {'eventos': eventos})
+    return render(request, 'historial/historial.html', {'eventos': eventos, 'is_admin': is_admin})
