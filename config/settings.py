@@ -7,6 +7,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if not value:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
 SECRET_KEY = os.getenv(
     'SECRET_KEY',
     'django-insecure-v$ef)a)spie+x-k#)yg5wwbz(@5rx&)(zf*_aza#(#n*@hb$5o',
@@ -144,9 +161,31 @@ LOGIN_URL = 'autenticacion:login'
 LOGIN_REDIRECT_URL = 'index'
 LOGOUT_REDIRECT_URL = 'autenticacion:login'
 
-EMAIL_BACKEND = os.getenv(
-    'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend',
-)
+_email_backend_env = os.getenv('EMAIL_BACKEND')
+if _email_backend_env:
+    EMAIL_BACKEND = _email_backend_env
+else:
+    # Auto-use SMTP when credentials are present; otherwise keep console backend.
+    _smtp_host = os.getenv('EMAIL_HOST', '').strip()
+    _smtp_user = os.getenv('EMAIL_HOST_USER', '').strip()
+    _smtp_password = os.getenv('EMAIL_HOST_PASSWORD', '').strip()
+    EMAIL_BACKEND = (
+        'django.core.mail.backends.smtp.EmailBackend'
+        if (_smtp_host and _smtp_user and _smtp_password)
+        else 'django.core.mail.backends.console.EmailBackend'
+    )
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@unitecnar.local')
+
+# SMTP email settings (used when EMAIL_BACKEND is SMTP).
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = _env_int('EMAIL_PORT', 587)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+
+# Typically use *either* TLS (587) or SSL (465).
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = _env_bool('EMAIL_USE_SSL', default=False)
+
+EMAIL_TIMEOUT = _env_int('EMAIL_TIMEOUT', 20)
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
