@@ -203,6 +203,71 @@ def _buscar_actividad(actividad_ref: str):
     return Actividad.objects.filter(nombre__icontains=ref).order_by('-fecha_inicio', '-id').first()
 
 
+def _norm_msg(msg: str) -> str:
+    msg = str(msg or '').strip().lower()
+    msg = ''.join(c for c in unicodedata.normalize('NFKD', msg) if not unicodedata.combining(c))
+    msg = re.sub(r'\s+', ' ', msg).strip()
+    return msg
+
+
+def _detect_tipologia_from_message(norm_msg: str):
+    # Tipologías conocidas por el modelo.
+    # Nota: si en la BD existen valores fuera de choices, este filtro podría no encontrarlos.
+    # Aun así, para consultas como "tipo taller" buscamos "taller".
+    tip_keywords = {
+        'taller': 'taller',
+        'seminario': 'seminario',
+        'curso': 'curso',
+        'otro': 'otro',
+    }
+    for k, v in tip_keywords.items():
+        if re.search(rf'\b{re.escape(k)}\b', norm_msg):
+            return v
+    return None
+
+
+def _try_answer_activity_list_questions(mensaje: str):
+    """Answer simple listing questions directly from DB.
+
+    Returns a plain-text response string or None if not recognized.
+    """
+    norm = _norm_msg(mensaje)
+    if not norm:
+        return None
+
+    wants_names = False
+    if ('nombres' in norm and 'actividad' in norm) or re.search(r'\b(lista|listado)\b.*\bactividades\b', norm):
+        wants_names = True
+    if re.search(r'\b(dime|muestrame|muestreme|cuales son|cu\w+les son)\b.*\bactividades\b', norm):
+        wants_names = True
+
+    tip = None
+    if 'tipologia' in norm or re.search(r'\btipo\b', norm):
+        tip = _detect_tipologia_from_message(norm)
+
+    # Filtrado por tipología (por ejemplo: "actividades tipo taller").
+    if tip and (('actividad' in norm) or ('actividades' in norm)):
+        qs = Actividad.objects.filter(tipologia__iexact=tip).order_by('-fecha_inicio', '-id')
+        nombres = list(qs.values_list('nombre', flat=True))
+        if not nombres:
+            return f"No hay actividades con tipología '{tip}'."
+        lines = [f"Actividades con tipología '{tip}' ({len(nombres)}):"]
+        lines.extend([f"- {n}" for n in nombres])
+        return "\n".join(lines)
+
+    # Lista de nombres (todas)
+    if wants_names:
+        qs = Actividad.objects.order_by('-fecha_inicio', '-id')
+        nombres = list(qs.values_list('nombre', flat=True))
+        if not nombres:
+            return 'No hay actividades registradas.'
+        lines = [f"Actividades registradas ({len(nombres)}):"]
+        lines.extend([f"- {n}" for n in nombres])
+        return "\n".join(lines)
+
+    return None
+
+
 def _is_create_activity_intent(user_text: str) -> bool:
     if not user_text:
         return False
@@ -663,6 +728,11 @@ def generador_ia_api(request):
 
     actividad = _buscar_actividad(actividad_ref)
     resumen = _resumen_bd()
+
+    # Respuestas directas desde BD para preguntas frecuentes (sin IA).
+    direct = _try_answer_activity_list_questions(mensaje)
+    if direct:
+        return JsonResponse({'ok': True, 'respuesta': direct})
 
     allow_defaults = False
     create_intent = _is_create_activity_intent(mensaje)

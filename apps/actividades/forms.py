@@ -60,6 +60,19 @@ class ActividadForm(forms.ModelForm):
         self.fields['tipologia'].choices = [('', 'Seleccionar tipología'), *Actividad.TIPOLOGIAS]
         self.fields['modalidad'].choices = [('', 'Seleccionar modalidad'), *Actividad.MODALIDADES]
 
+        # Modo edición: la Actividad guarda el programa como texto (nombre). Para que el select
+        # funcione correctamente, intentamos resolver ese nombre contra la tabla Programa.
+        if (not self.is_bound) and getattr(self, 'instance', None) and getattr(self.instance, 'pk', None):
+            if (not self.initial.get('programa')) and getattr(self.instance, 'programa', None):
+                programa_obj = (
+                    Programa.objects.select_related('facultad')
+                    .filter(nombre=self.instance.programa)
+                    .first()
+                )
+                if programa_obj:
+                    self.initial['facultad'] = programa_obj.facultad
+                    self.initial['programa'] = str(programa_obj.pk)
+
         selected_facultad_id = None
         if self.is_bound:
             selected_facultad_id = self.data.get(self.add_prefix('facultad'))
@@ -77,10 +90,18 @@ class ActividadForm(forms.ModelForm):
             *[(str(programa.pk), programa.nombre) for programa in programas_qs],
         ]
 
+        # Asegurar que el valor inicial del select sea el ID (no el nombre guardado en BD).
+        if (not self.is_bound) and self.initial.get('programa'):
+            self.fields['programa'].initial = self.initial.get('programa')
+
     def clean_programa(self):
         programa_id = (self.cleaned_data.get('programa') or '').strip()
         if not programa_id:
-            return ''
+            # En edición, si el select llega vacío (por ejemplo, porque estaba deshabilitado
+            # por la carga dinámica), conservamos el valor actual.
+            if getattr(self.instance, 'pk', None) and getattr(self.instance, 'programa', None):
+                return self.instance.programa
+            raise forms.ValidationError('Selecciona un programa.')
 
         try:
             programa = Programa.objects.select_related('facultad').get(pk=programa_id)

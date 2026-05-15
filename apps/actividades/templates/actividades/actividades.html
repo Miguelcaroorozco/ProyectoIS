@@ -15,7 +15,7 @@
   <div class="card" id="actividades-lista">
     <form class="toolbar" method="get">
       <div style="flex:1;">
-        <input class="input" name="q" value="{{ q|default:'' }}" type="search" placeholder="Buscar por nombre, tipología o programa..." aria-label="Buscar" />
+        <input class="input" name="q" value="{{ q|default:'' }}" type="search" placeholder="Buscar por nombre" aria-label="Buscar" />
       </div>
       <button class="btn" type="submit">Buscar</button>
     </form>
@@ -74,6 +74,7 @@
         if (!a) return;
         if (!wrap.contains(a)) return;
         if (!a.getAttribute('href')) return;
+        if (a.dataset && a.dataset.noAjax) return;
         if (a.getAttribute('href').startsWith('http')) return;
 
         e.preventDefault();

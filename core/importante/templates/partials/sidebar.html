@@ -12,6 +12,15 @@
 
   <nav class="nav" aria-label="Navegación">
     {% with active|default:'' as active_code %}
+      <a {% if active_code == 'index' %}class="active"{% endif %} href="{% url 'index' %}">
+        <svg class="nav-icon" width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+          <path d="M4 10l8-6l8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10v10h12V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 20v-6h4v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Inicio</span>
+      </a>
+
       <details class="nav-group" {% if active_code == 'actividades' or active_code == 'nueva_actividad' or active_code == 'busqueda_avanzada' or active_code == 'reportes' %}open{% endif %}>
         <summary class="nav-group-toggle{% if active_code == 'actividades' or active_code == 'nueva_actividad' or active_code == 'busqueda_avanzada' or active_code == 'reportes' %} active{% endif %}">
           <span class="nav-group-label">

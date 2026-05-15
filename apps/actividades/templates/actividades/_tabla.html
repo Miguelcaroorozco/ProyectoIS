@@ -11,6 +11,8 @@
         <th>Periodo</th>
         <th>Fechas</th>
         <th>Participantes</th>
+        <th>Creado por</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -23,6 +25,20 @@
         <td>{{ actividad.periodo }}</td>
         <td>{{ actividad.fecha_inicio|date:'Y-m-d' }} - {{ actividad.fecha_fin|date:'Y-m-d' }}</td>
         <td>{{ actividad.numero_participantes }}</td>
+        <td>
+          {% if actividad.creado_por %}{{ actividad.creado_por.get_full_name|default:actividad.creado_por.username }}{% else %}-{% endif %}
+        </td>
+        <td>
+          {% if es_admin or request.user.is_superuser or actividad.creado_por_id == request.user.id %}
+            <a class="btn btn-secondary" data-no-ajax="1" href="{% url 'editar_actividad' actividad.id %}">Editar</a>
+            <form method="post" action="{% url 'eliminar_actividad' actividad.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta actividad?');">
+              {% csrf_token %}
+              <button class="btn btn-secondary" type="submit">Borrar</button>
+            </form>
+          {% else %}
+            <span style="color: var(--muted);">No es tu actividad (solo lectura)</span>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
